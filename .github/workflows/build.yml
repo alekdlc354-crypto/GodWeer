@@ -25,7 +25,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon --stacktrace
+        run: |
+          set +e
+          ./gradlew build --no-daemon --stacktrace > build.log 2>&1
+          code=$?
+          set -e
+          echo "gradle exit code: $code"
+          grep -n -i -E "what went wrong|error:|error;|failed|caused by|exception|unsupported|could not|build failed" build.log | head -40 | cut -c1-3000 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+          exit $code
 
       - name: Upload Mod JAR
         uses: actions/upload-artifact@v4
