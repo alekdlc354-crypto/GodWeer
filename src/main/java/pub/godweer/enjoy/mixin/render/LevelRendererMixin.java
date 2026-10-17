@@ -46,6 +46,21 @@ public abstract class LevelRendererMixin {
         if (popEffect != null && popEffect.isEnabled() && this.popEffect$cameraRenderState != null) {
             popEffect.getRenderer().submitChams(poseStack, submitNodeCollector, this.popEffect$cameraRenderState);
         }
+        
+        // Render crystals for TargetEsp
+        pub.godweer.kitty.module.impl.render.TargetEsp targetEsp = Client.INSTANCE.moduleManager.getModule(pub.godweer.kitty.module.impl.render.TargetEsp.class);
+        if (targetEsp != null && targetEsp.isEnabled() && targetEsp.usesCrystals()) {
+            net.minecraft.world.entity.LivingEntity target = targetEsp.resolveTarget();
+            targetEsp.getCrystalsRenderer().setTarget(target);
+            float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
+            targetEsp.getCrystalsRenderer().render(
+                poseStack,
+                tickDelta,
+                targetEsp.crystalColorA.getValue(),
+                targetEsp.crystalColorB.getValue(),
+                targetEsp.crystalThroughWalls.getValue()
+            );
+        }
     }
     @Inject(method = "submitBlockOutline", at = @At("HEAD"), cancellable = true)
     private void replaceVanillaBlockOutline(PoseStack poseStack, SubmitNodeCollector collector, LevelRenderState levelRenderState, CallbackInfo ci) {

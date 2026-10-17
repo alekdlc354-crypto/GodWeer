@@ -6,6 +6,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import pub.godweer.Client;
 import pub.godweer.auxiliary.client.clients.ColorUtil;
 import pub.godweer.auxiliary.client.clients.Theme;
+import pub.godweer.auxiliary.client.target.CrystalsTargetEspRenderer;
 import pub.godweer.auxiliary.client.target.TargetEspRenderer;
 import pub.godweer.enjoy.event.EventTarget;
 import pub.godweer.enjoy.event.list.Render2DEvent;
@@ -26,8 +27,9 @@ public final class TargetEsp extends Module {
     public static final String MODE_MARKER = "Marker";
     public static final String MODE_SOULS = "Souls";
     public static final String MODE_LIGHTNING = "Lightning";
+    public static final String MODE_CRYSTALS = "Crystals";
 
-    public final ModeSetting mode = mode("Режим", MODE_MARKER, MODE_MARKER, MODE_SOULS, MODE_LIGHTNING);
+    public final ModeSetting mode = mode("Режим", MODE_MARKER, MODE_MARKER, MODE_SOULS, MODE_LIGHTNING, MODE_CRYSTALS);
 
     public final SliderSetting soulSpeed = slider("Speed Souls", 1.0f, 0.0f, 4.0f, 0.1f);
 
@@ -38,7 +40,12 @@ public final class TargetEsp extends Module {
     public final SliderSetting lightningWidth = slider("Молнии: Толщина", 1.0f, 0.4f, 2.5f, 0.1f).visible(this::usesLightning);
     public final CheckBox lightningHurt = checkbox("Молнии: Вспышка при уроне", true).visible(this::usesLightning);
 
+    public final ColorSetting crystalColorA = color("Кристаллы: Цвет A", ColorUtil.rgba(155, 77, 255, 255)).visible(this::usesCrystals);
+    public final ColorSetting crystalColorB = color("Кристаллы: Цвет B", ColorUtil.rgba(0, 229, 255, 255)).visible(this::usesCrystals);
+    public final CheckBox crystalThroughWalls = checkbox("Кристаллы: Сквозь стены", true).visible(this::usesCrystals);
+
     private final TargetEspRenderer renderer = new TargetEspRenderer();
+    private final CrystalsTargetEspRenderer crystalsRenderer = new CrystalsTargetEspRenderer();
 
     public TargetEsp() {
         super("TargetEsp", "Подсвечивает цель маркером, душами или молниями", Category.RENDER);
@@ -72,6 +79,10 @@ public final class TargetEsp extends Module {
         return this.renderer;
     }
 
+    public CrystalsTargetEspRenderer getCrystalsRenderer() {
+        return this.crystalsRenderer;
+    }
+
     public boolean hasTarget() {
         return resolveTarget() != null;
     }
@@ -86,6 +97,10 @@ public final class TargetEsp extends Module {
 
     public boolean usesLightning() {
         return mode.getValue().equalsIgnoreCase(MODE_LIGHTNING);
+    }
+
+    public boolean usesCrystals() {
+        return mode.getValue().equalsIgnoreCase(MODE_CRYSTALS);
     }
 
     @EventTarget
