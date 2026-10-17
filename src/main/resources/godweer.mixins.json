@@ -43,6 +43,7 @@
     "render.GameRendererShaderSourceMixin",
     "render.PipelineCacheMixin",
     "render.CameraMixin",
+    "render.SmoothCameraMixin",
     "render.ParticleEngineMixin",
     "render.ScreenEffectRendererMixin",
     "render.BannerRendererMixin",

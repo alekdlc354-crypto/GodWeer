@@ -54,6 +54,7 @@ public class Modules {
     public BlockHighlight blockHighlight;
     public JumpCircles jumpCircles;
     public FreeCam freeCam;
+    public SmoothCamera smoothCamera;
     public ItemScroller itemScroller;
     public FullBright fullBright;
     public AHHelper ahHelper;
@@ -93,6 +94,7 @@ public class Modules {
         this.waterSpeed = new WaterSpeed();
         this.jumpCircles = new JumpCircles();
         this.freeCam = new FreeCam();
+        this.smoothCamera = new SmoothCamera();
         this.swingAnimation = new SwingAnimation();
         this.viewModel = new ViewModel();
         this.blockHighlight = new BlockHighlight();
@@ -147,7 +149,8 @@ public class Modules {
                 this.xray,
                 this.zoom,
                 this.fovChanger,
-                this.freeCam
+                this.freeCam,
+                this.smoothCamera
         );
     }
 
