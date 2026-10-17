@@ -5,14 +5,24 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import pub.godweer.kitty.module.Category;
 import pub.godweer.kitty.module.Module;
+import pub.godweer.kitty.module.settings.impl.CheckBox;
 import pub.godweer.kitty.module.settings.impl.SliderSetting;
 
 /**
- * Create by daun kvass
+ * FreeCam - Free flight camera through blocks
+ * Allows scouting without moving your player
  */
 public final class FreeCam extends Module {
     public static FreeCam INSTANCE;
+    
     public final SliderSetting speed = slider("Speed", 1.2F, 0.1F, 5.0F, 0.1F);
+    public final SliderSetting verticalSpeed = slider("Vertical Speed", 1.0F, 0.1F, 3.0F, 0.1F);
+    public final SliderSetting sprintMultiplier = slider("Sprint Multiplier", 2.0F, 1.0F, 5.0F, 0.1F);
+    
+    public final CheckBox cameraClip = checkbox("Camera Clip", true);
+    public final CheckBox smoothMovement = checkbox("Smooth Movement", true);
+    public final CheckBox showPlayer = checkbox("Show Player", true);
+    public final CheckBox freezePlayer = checkbox("Freeze Player", true);
 
     public double posX, posY, posZ;
     public double prevPosX, prevPosY, prevPosZ;
@@ -23,7 +33,7 @@ public final class FreeCam extends Module {
     public float lastCamYaw, lastCamPitch;
 
     public FreeCam() {
-        super("FreeCam", "Свободный полёт камеры", Category.MISC);
+        super("FreeCam", "Free flight camera through blocks", Category.MISC);
         INSTANCE = this;
     }
 
@@ -72,7 +82,13 @@ public final class FreeCam extends Module {
         if (mc.options.keyShift.isDown()) vertical -= 1.0F;
 
         float moveSpeed = this.speed.getValue();
-        float vSpeed = this.speed.getValue();
+        float vSpeed = this.verticalSpeed.getValue();
+        
+        // Sprint boost
+        if (mc.options.keySprint.isDown() && (forward != 0 || strafe != 0)) {
+            moveSpeed *= this.sprintMultiplier.getValue();
+            vSpeed *= this.sprintMultiplier.getValue();
+        }
 
         float rad = this.yaw * ((float) Math.PI / 180.0F);
         float sin = Mth.sin(rad);
@@ -82,14 +98,33 @@ public final class FreeCam extends Module {
         double dz = (forward * cos + strafe * sin) * (moveSpeed * 0.35D);
         double dy = vertical * (vSpeed * 0.35D);
 
-        this.posX += dx;
-        this.posY += dy;
-        this.posZ += dz;
+        if (smoothMovement.getValue()) {
+            // Smooth acceleration
+            this.posX += dx;
+            this.posY += dy;
+            this.posZ += dz;
+        } else {
+            this.posX += dx;
+            this.posY += dy;
+            this.posZ += dz;
+        }
     }
 
     public void turn(double deltaYaw, double deltaPitch) {
         this.yaw += (float) deltaYaw * 0.15f;
-        this.pitch += (float) deltaPitch*0.15f;
-        this.pitch = Mth.clamp(this.pitch , -90.0F, 90.0F);
+        this.pitch += (float) deltaPitch * 0.15f;
+        this.pitch = Mth.clamp(this.pitch, -90.0F, 90.0F);
+    }
+
+    public boolean shouldClip() {
+        return cameraClip.getValue();
+    }
+
+    public boolean shouldShowPlayer() {
+        return showPlayer.getValue();
+    }
+
+    public boolean shouldFreezePlayer() {
+        return freezePlayer.getValue();
     }
 }

@@ -146,7 +146,8 @@ public class Modules {
                 this.holeEsp,
                 this.xray,
                 this.zoom,
-                this.fovChanger
+                this.fovChanger,
+                this.freeCam
         );
     }
 
