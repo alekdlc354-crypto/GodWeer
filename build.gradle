@@ -25,6 +25,38 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
+// Запуск клиента: "run client.bat" либо gradlew runClient.
+//
+// Лицензия Minecraft НЕ нужна:
+//   1. Fabric Loader в dev сам подставляет фиктивный accessToken
+//      (MinecraftGameProvider#processArgumentMap -> "FabricMC");
+//   2. --offlineDeveloperMode переводит игру на офлайн-сессию:
+//      YggdrasilAuthenticationService.createOffline, без запроса профиля,
+//      UserApiService.OFFLINE и пустой ProfileKeyPairManager.
+// Мультиплеер при этом не отключён - работают одиночка, LAN
+// и offline-mode серверы. Настройки: gradle.properties
+// (dev_username / dev_xmx / dev_offline_dev_mode), либо переменные
+// окружения GODWEER_USERNAME / GODWEER_XMX.
+loom {
+    runs {
+        client {
+            client()
+
+            def devUsername = (System.getenv("GODWEER_USERNAME")
+                    ?: project.findProperty("dev_username") ?: "GodWeer").toString()
+            getProgramArguments().addAll(["--username", devUsername])
+
+            if ((project.findProperty("dev_offline_dev_mode") ?: "true").toString().toBoolean()) {
+                getProgramArguments().add("--offlineDeveloperMode")
+            }
+
+            def devXmx = (System.getenv("GODWEER_XMX")
+                    ?: project.findProperty("dev_xmx") ?: "2G").toString()
+            getJvmArguments().add("-Xmx" + devXmx)
+        }
+    }
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version
