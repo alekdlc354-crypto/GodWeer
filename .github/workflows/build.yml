@@ -31,7 +31,7 @@ jobs:
           code=$?
           set -e
           echo "gradle exit code: $code"
-          grep -n -i -E "what went wrong|error:|error;|failed|caused by|exception|unsupported|could not|build failed" build.log | head -40 | cut -c1-3000 | while IFS= read -r line; do
+          grep -n -A4 -i -E "error:|what went wrong" build.log | head -60 | cut -c1-2500 | while IFS= read -r line; do
             echo "::error::${line}"
           done
           exit $code

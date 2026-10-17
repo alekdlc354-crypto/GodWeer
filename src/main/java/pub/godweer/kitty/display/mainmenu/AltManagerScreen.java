@@ -107,7 +107,7 @@ public class AltManagerScreen extends Screen {
                 return;
             }
 
-            List<AbstractWidget> buttons = Screens.getButtons(screen);
+            List<AbstractWidget> buttons = Screens.getWidgets(screen);
             for (AbstractWidget button : new ArrayList<>(buttons)) {
                 if (!button.getMessage().equals(Component.translatable("menu.online"))) {
                     continue;
