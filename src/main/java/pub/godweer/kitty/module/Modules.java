@@ -8,6 +8,14 @@ import pub.godweer.kitty.module.impl.movement.*;
 import pub.godweer.kitty.module.impl.player.*;
 import pub.godweer.kitty.module.impl.render.*;
 import pub.godweer.kitty.module.impl.render.GlowHands;
+import pub.godweer.kitty.module.impl.render.ESP;
+import pub.godweer.kitty.module.impl.render.StorageESP;
+import pub.godweer.kitty.module.impl.render.Tracers;
+import pub.godweer.kitty.module.impl.render.Trajectories;
+import pub.godweer.kitty.module.impl.render.HoleESP;
+import pub.godweer.kitty.module.impl.misc.XRay;
+import pub.godweer.kitty.module.impl.misc.Zoom;
+import pub.godweer.kitty.module.impl.misc.FovChanger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +46,7 @@ public class Modules {
     public FreeLook freeLook;
     public ShaderHands shaderHands;
     public GlowHands glowHands;
+    public FireHands fireHands;
     public Chams chams;
     public ViewModel viewModel;
     public SwingAnimation swingAnimation;
@@ -46,6 +55,7 @@ public class Modules {
     public BlockHighlight blockHighlight;
     public JumpCircles jumpCircles;
     public FreeCam freeCam;
+    public SmoothCamera smoothCamera;
     public ItemScroller itemScroller;
     public FullBright fullBright;
     public AHHelper ahHelper;
@@ -55,6 +65,15 @@ public class Modules {
     public AttackAura attackAura;
     public Criticals criticals;
     public TargetEsp targetEsp;
+    public Trails trails;
+    public ESP esp;
+    public StorageESP storageEsp;
+    public Tracers tracers;
+    public Trajectories trajectories;
+    public HoleESP holeEsp;
+    public XRay xray;
+    public Zoom zoom;
+    public FovChanger fovChanger;
 
     public void init() {
         // Only HUD + ClickGUI stay functional. Everything else is instantiated
@@ -76,12 +95,14 @@ public class Modules {
         this.waterSpeed = new WaterSpeed();
         this.jumpCircles = new JumpCircles();
         this.freeCam = new FreeCam();
+        this.smoothCamera = new SmoothCamera();
         this.swingAnimation = new SwingAnimation();
         this.viewModel = new ViewModel();
         this.blockHighlight = new BlockHighlight();
         this.autoTotem = new AutoTotem();
         this.shaderHands = new ShaderHands();
         this.glowHands = new GlowHands();
+        this.fireHands = new FireHands();
         this.chams = new Chams();
         this.betterMinecraft = new BetterMinecraft();
         this.guiWalk = new GuiWalk();
@@ -97,6 +118,15 @@ public class Modules {
         this.rain = new Rain();
         this.particles = new Particles();
         this.targetEsp = new TargetEsp();
+        this.trails = new Trails();
+        this.esp = new ESP();
+        this.storageEsp = new StorageESP();
+        this.tracers = new Tracers();
+        this.trajectories = new Trajectories();
+        this.holeEsp = new HoleESP();
+        this.xray = new XRay();
+        this.zoom = new Zoom();
+        this.fovChanger = new FovChanger();
 
         register(
                 this.clickGui,
@@ -104,12 +134,26 @@ public class Modules {
                 this.shaderSky,
                 this.shaderHands,
                 this.glowHands,
+                this.fireHands,
                 this.chams,
                 this.rain,
                 this.targetEsp,
                 this.attackAura,
                 this.sprint,
-                this.elytraHelper
+                this.elytraHelper,
+                this.popEffect,
+                this.trails,
+                this.particles,
+                this.esp,
+                this.storageEsp,
+                this.tracers,
+                this.trajectories,
+                this.holeEsp,
+                this.xray,
+                this.zoom,
+                this.fovChanger,
+                this.freeCam,
+                this.smoothCamera
         );
     }
 

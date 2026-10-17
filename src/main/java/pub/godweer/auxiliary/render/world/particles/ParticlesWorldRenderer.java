@@ -201,7 +201,12 @@ public final class ParticlesWorldRenderer {
         );
         for (Sprite sprite : sprites) {
             Vector4f center = Render3DUtil.toViewSpace(sprite.position(), cameraPos, pose);
-            float half = sprite.halfSize();
+            
+            // Calculate distance to camera for proper scaling
+            double dist = cameraPos.distanceTo(sprite.position());
+            float scale = (float) Math.max(0.1, Math.min(5.0, dist * 0.15));
+            float half = sprite.halfSize() * scale;
+            
             int color = sprite.color();
 
             addVertex(builder, center, -half, -half, 0.0F, 0.0F, color);
