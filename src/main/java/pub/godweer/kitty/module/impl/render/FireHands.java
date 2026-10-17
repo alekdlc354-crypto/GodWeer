@@ -1,8 +1,6 @@
 package pub.godweer.kitty.module.impl.render;
 
-import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import org.lwjgl.opengl.GL11;
@@ -134,7 +132,7 @@ public final class FireHands extends Module {
         }
 
         RenderTarget rt = Minecraft.getInstance().getMainRenderTarget();
-        int mainColor = glId(rt.getColorTexture());
+        int mainColor = rt.getColorTextureId();
         if (mainColor == 0) return;
 
         GlState s = GlState.save();
@@ -154,8 +152,8 @@ public final class FireHands extends Module {
 
         Minecraft mc = Minecraft.getInstance();
         RenderTarget rt = mc.getMainRenderTarget();
-        int mainColor = glId(rt.getColorTexture());
-        int mainDepth = rt.getDepthTexture() != null ? glId(rt.getDepthTexture()) : 0;
+        int mainColor = rt.getColorTextureId();
+        int mainDepth = rt.getDepthTextureId();
         if (mainColor == 0) return;
 
         long now = System.nanoTime();
@@ -324,10 +322,6 @@ public final class FireHands extends Module {
     // =====================================================================
     //                              GL УТИЛИТЫ
     // =====================================================================
-
-    private static int glId(GpuTexture t) {
-        return t instanceof GlTexture g ? g.glId() : 0;
-    }
 
     private static void blit(int from, int to, int w, int h) {
         GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, from);

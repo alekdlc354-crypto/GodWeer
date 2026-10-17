@@ -2,8 +2,6 @@ package pub.godweer.kitty.module.impl.render;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.*;
 import net.minecraft.world.phys.Vec3;
 import pub.godweer.enjoy.event.EventTarget;
