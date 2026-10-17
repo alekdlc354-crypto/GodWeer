@@ -36,6 +36,7 @@ public abstract class LevelRendererMixin {
     private void renderWorldEffects(GraphicsResourceAllocator graphicsResourceAllocator, boolean b1, CameraRenderState cameraRenderState, GpuBufferSlice fogParameters, Vector4f skyColor, boolean b2, boolean b3, CallbackInfo ci) {
         // В 26.3 у LevelRenderer.render больше нет DeltaTracker/проекционной матрицы;
         // партиал-тик берётся из Minecraft.getDeltaTracker().
+        this.popEffect$cameraRenderState = cameraRenderState;
         MiasmWorlds.render(new RendererWorldProvider(this.levelRenderState, cameraRenderState,
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
     }

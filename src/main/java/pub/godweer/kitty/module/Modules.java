@@ -55,6 +55,7 @@ public class Modules {
     public AttackAura attackAura;
     public Criticals criticals;
     public TargetEsp targetEsp;
+    public Trails trails;
 
     public void init() {
         // Only HUD + ClickGUI stay functional. Everything else is instantiated
@@ -97,6 +98,7 @@ public class Modules {
         this.rain = new Rain();
         this.particles = new Particles();
         this.targetEsp = new TargetEsp();
+        this.trails = new Trails();
 
         register(
                 this.clickGui,
@@ -109,7 +111,10 @@ public class Modules {
                 this.targetEsp,
                 this.attackAura,
                 this.sprint,
-                this.elytraHelper
+                this.elytraHelper,
+                this.popEffect,
+                this.trails,
+                this.particles
         );
     }
 
