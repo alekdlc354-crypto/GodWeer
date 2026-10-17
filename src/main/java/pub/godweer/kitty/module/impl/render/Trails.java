@@ -133,7 +133,7 @@ public final class Trails extends Module {
             
             if (speed < 0.05) continue;
 
-            int trailLength = (int) this.trailLength.getValue();
+            int trailLength = this.trailLength.getValue().intValue();
             float width = trailWidth.getValue();
             
             // Spawn multiple points per frame for smoother trails
