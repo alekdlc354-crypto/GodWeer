@@ -3,6 +3,7 @@ package pub.godweer;
 import net.fabricmc.api.ModInitializer;
 import pub.godweer.enjoy.event.EventManager;
 import pub.godweer.kitty.builder.RotationBuilderManager;
+import pub.godweer.kitty.display.mainmenu.AltManagerScreen;
 import pub.godweer.kitty.sosiski.account.AccountManager;
 import pub.godweer.kitty.sosiski.command.CommandManager;
 import pub.godweer.kitty.sosiski.config.ConfigManager;
@@ -39,7 +40,7 @@ public class Client implements ModInitializer {
         this.eventManager.register(Tps.INSTANCE);
         this.eventManager.register(new PanelKeyBoardHandler());
         this.eventManager.register(new PanelLapRenderHandler());
-
+        AltManagerScreen.hookTitleScreen();
     }
 
     public static Client getInstance() {
