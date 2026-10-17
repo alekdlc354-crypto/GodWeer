@@ -8,6 +8,14 @@ import pub.godweer.kitty.module.impl.movement.*;
 import pub.godweer.kitty.module.impl.player.*;
 import pub.godweer.kitty.module.impl.render.*;
 import pub.godweer.kitty.module.impl.render.GlowHands;
+import pub.godweer.kitty.module.impl.render.ESP;
+import pub.godweer.kitty.module.impl.render.StorageESP;
+import pub.godweer.kitty.module.impl.render.Tracers;
+import pub.godweer.kitty.module.impl.render.Trajectories;
+import pub.godweer.kitty.module.impl.render.HoleESP;
+import pub.godweer.kitty.module.impl.misc.XRay;
+import pub.godweer.kitty.module.impl.misc.Zoom;
+import pub.godweer.kitty.module.impl.misc.FovChanger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +64,14 @@ public class Modules {
     public Criticals criticals;
     public TargetEsp targetEsp;
     public Trails trails;
+    public ESP esp;
+    public StorageESP storageEsp;
+    public Tracers tracers;
+    public Trajectories trajectories;
+    public HoleESP holeEsp;
+    public XRay xray;
+    public Zoom zoom;
+    public FovChanger fovChanger;
 
     public void init() {
         // Only HUD + ClickGUI stay functional. Everything else is instantiated
@@ -99,6 +115,14 @@ public class Modules {
         this.particles = new Particles();
         this.targetEsp = new TargetEsp();
         this.trails = new Trails();
+        this.esp = new ESP();
+        this.storageEsp = new StorageESP();
+        this.tracers = new Tracers();
+        this.trajectories = new Trajectories();
+        this.holeEsp = new HoleESP();
+        this.xray = new XRay();
+        this.zoom = new Zoom();
+        this.fovChanger = new FovChanger();
 
         register(
                 this.clickGui,
@@ -114,7 +138,15 @@ public class Modules {
                 this.elytraHelper,
                 this.popEffect,
                 this.trails,
-                this.particles
+                this.particles,
+                this.esp,
+                this.storageEsp,
+                this.tracers,
+                this.trajectories,
+                this.holeEsp,
+                this.xray,
+                this.zoom,
+                this.fovChanger
         );
     }
 
