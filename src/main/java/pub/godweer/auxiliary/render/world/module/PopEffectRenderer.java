@@ -568,13 +568,13 @@ public final class PopEffectRenderer {
 
         List<ParticlesWorldRenderer.Sprite> sprites = new ArrayList<>();
 
-        // Render shockwaves
+        // Render shockwaves - smoother and more detailed
         for (ShockWave wave : shockWaves) {
             float progress = wave.getProgress();
             float radius = wave.maxRadius * progress;
-            float alpha = (1.0F - progress) * (1.0F - progress);
+            float alpha = (float) Math.pow(1.0F - progress, 1.5F); // Smoother fade
             
-            int segments = 40;
+            int segments = 60; // More segments for smoother circle
             for (int i = 0; i < segments; i++) {
                 double angle = (i / (double) segments) * Math.PI * 2.0;
                 Vec3 pos = wave.center.add(
@@ -582,82 +582,92 @@ public final class PopEffectRenderer {
                         0,
                         Math.sin(angle) * radius
                 );
-                sprites.add(new ParticlesWorldRenderer.Sprite(pos, wave.thickness * (1.0F - progress * 0.5F), 
+                // Thicker at start, thinner at end
+                float thickness = wave.thickness * (1.5F - progress * 0.8F);
+                sprites.add(new ParticlesWorldRenderer.Sprite(pos, thickness, 
                         ColorUtil.multiplyAlpha(wave.color, alpha)));
             }
         }
 
-        // Render energy beams
+        // Render energy beams - better glow and fade
         for (EnergyBeam beam : energyBeams) {
             float progress = beam.getProgress();
-            float alpha = (float) Math.sin(progress * Math.PI);
+            float alpha = (float) Math.sin(progress * Math.PI); // Smooth fade in and out
             
             for (int i = 0; i < beam.segments; i++) {
                 float t = (float) i / beam.segments;
                 Vec3 pos = beam.startPos.lerp(beam.endPos, t);
-                float width = beam.width * (1.0F - t * 0.5F) * alpha;
+                float width = beam.width * (1.0F - t * 0.6F) * alpha;
                 
-                sprites.add(new ParticlesWorldRenderer.Sprite(pos, width * 2.0F, 
-                        ColorUtil.multiplyAlpha(beam.color, alpha * 0.4F)));
+                // Outer glow - larger and softer
+                sprites.add(new ParticlesWorldRenderer.Sprite(pos, width * 2.5F, 
+                        ColorUtil.multiplyAlpha(beam.color, alpha * 0.35F)));
+                
+                // Main beam
                 sprites.add(new ParticlesWorldRenderer.Sprite(pos, width, 
-                        ColorUtil.multiplyAlpha(beam.color, alpha)));
+                        ColorUtil.multiplyAlpha(beam.color, alpha * 0.9F)));
+                
+                // Bright core
                 sprites.add(new ParticlesWorldRenderer.Sprite(pos, width * 0.3F, 
-                        ColorUtil.rgba(255, 255, 255, (int) (alpha * 220))));
+                        ColorUtil.rgba(255, 255, 255, (int) (alpha * 200))));
             }
         }
 
-        // Render spiral rings
+        // Render spiral rings - denser and smoother
         for (SpiralRing ring : spiralRings) {
             float progress = ring.getProgress();
-            float alpha = (1.0F - progress);
-            float currentRadius = ring.expanding ? ring.radius * (1.0F + progress * 2.0F) : ring.radius;
+            float alpha = (float) Math.pow(1.0F - progress, 1.3F); // Smoother fade
+            float currentRadius = ring.expanding ? ring.radius * (1.0F + progress * 2.5F) : ring.radius;
             double rotation = System.currentTimeMillis() * 0.001 * ring.rotationSpeed;
             
             for (int i = 0; i < ring.particleCount; i++) {
                 double angle = (i / (double) ring.particleCount) * Math.PI * 2.0 + rotation;
                 Vec3 pos = ring.center.add(
                         Math.cos(angle) * currentRadius,
-                        Math.sin(i * 0.5 + rotation) * ring.height,
+                        Math.sin(i * 0.3 + rotation * 0.5) * ring.height,
                         Math.sin(angle) * currentRadius
                 );
-                sprites.add(new ParticlesWorldRenderer.Sprite(pos, 0.15F, 
+                // Add glow effect
+                sprites.add(new ParticlesWorldRenderer.Sprite(pos, 0.22F, 
+                        ColorUtil.multiplyAlpha(ring.color, alpha * alpha * 0.6F)));
+                sprites.add(new ParticlesWorldRenderer.Sprite(pos, 0.12F, 
                         ColorUtil.multiplyAlpha(ring.color, alpha * alpha)));
             }
         }
 
-        // Render lightning
+        // Render lightning - more detailed and vibrant
         for (LightningStrike bolt : lightnings) {
             float progress = bolt.getProgress();
-            float flash = (1.0F - progress) * (ThreadLocalRandom.current().nextFloat() > 0.1F ? 1.0F : 0.5F);
+            float flash = (1.0F - progress) * (ThreadLocalRandom.current().nextFloat() > 0.15F ? 1.0F : 0.6F);
             
             renderLightningLine(bolt.segments, sprites, 
                     ColorUtil.withAlpha(bolt.color, (int) (255 * flash)),
                     ColorUtil.rgba(255, 255, 255, (int) (255 * flash)),
-                    0.7F, 0.2F);
+                    0.8F, 0.25F);
 
             if (!bolt.branchSegments.isEmpty()) {
                 renderLightningLine(bolt.branchSegments, sprites,
-                        ColorUtil.withAlpha(bolt.secondaryColor, (int) (255 * flash * 0.7F)),
-                        ColorUtil.rgba(255, 255, 255, (int) (255 * flash * 0.8F)),
-                        0.45F, 0.12F);
+                        ColorUtil.withAlpha(bolt.secondaryColor, (int) (255 * flash * 0.75F)),
+                        ColorUtil.rgba(255, 255, 255, (int) (255 * flash * 0.85F)),
+                        0.55F, 0.15F);
             }
         }
 
-        // Render particles
+        // Render particles - smoother and more vibrant
         for (EpicParticle p : particles) {
             float progress = p.getProgress();
             float alphaFactor = (float) Math.sin((1.0F - progress) * (Math.PI * 0.5));
             
-            // Outer glow
-            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * 2.5F * alphaFactor,
-                    ColorUtil.multiplyAlpha(p.color, alphaFactor * 0.3F)));
+            // Outer glow - softer
+            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * 2.2F * alphaFactor,
+                    ColorUtil.multiplyAlpha(p.color, alphaFactor * 0.28F)));
             
-            // Main particle
-            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * alphaFactor,
-                    ColorUtil.multiplyAlpha(p.color, alphaFactor)));
+            // Main particle - slightly larger
+            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * 1.05F * alphaFactor,
+                    ColorUtil.multiplyAlpha(p.color, alphaFactor * 0.95F)));
             
-            // Bright core
-            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * 0.4F * alphaFactor,
+            // Bright core - smaller for better definition
+            sprites.add(new ParticlesWorldRenderer.Sprite(p.pos, p.baseSize * 0.38F * alphaFactor,
                     ColorUtil.multiplyAlpha(p.secondaryColor, alphaFactor)));
         }
 
@@ -672,11 +682,16 @@ public final class PopEffectRenderer {
             Vec3 p1 = points.get(i);
             Vec3 p2 = points.get(i + 1);
             double dist = p1.distanceTo(p2);
-            double step = 0.04;
+            double step = 0.035; // Smaller step for smoother lines
 
             for (double d = 0; d < dist; d += step) {
                 Vec3 pos = p1.lerp(p2, (float) (d / dist));
+                // Outer glow
+                out.add(new ParticlesWorldRenderer.Sprite(pos, outerR * 1.8F, 
+                        ColorUtil.multiplyAlpha(outerColor, 0.4F)));
+                // Main line
                 out.add(new ParticlesWorldRenderer.Sprite(pos, outerR, outerColor));
+                // Bright core
                 out.add(new ParticlesWorldRenderer.Sprite(pos, coreR, coreColor));
             }
         }

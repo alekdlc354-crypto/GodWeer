@@ -35,11 +35,11 @@ public final class Trails extends Module {
     public final CheckBox onlyMoving = checkbox("Only Moving", true);
     public final CheckBox selfTrails = checkbox("Self Trails", true);
     
-    public final SliderSetting trailLength = slider("Trail Length", 25.0F, 8.0F, 50.0F, 1.0F);
-    public final SliderSetting trailWidth = slider("Trail Width", 0.25F, 0.1F, 0.6F, 0.05F);
-    public final SliderSetting fadeSpeed = slider("Fade Speed", 1.0F, 0.3F, 2.5F, 0.1F);
-    public final SliderSetting brightness = slider("Brightness", 4.0F, 1.0F, 8.0F, 0.5F);
-    public final SliderSetting pulseSpeed = slider("Pulse Speed", 1.5F, 0.0F, 4.0F, 0.2F);
+    public final SliderSetting trailLength = slider("Trail Length", 20.0F, 8.0F, 50.0F, 1.0F);
+    public final SliderSetting trailWidth = slider("Trail Width", 0.2F, 0.1F, 0.6F, 0.05F);
+    public final SliderSetting fadeSpeed = slider("Fade Speed", 1.2F, 0.3F, 2.5F, 0.1F);
+    public final SliderSetting brightness = slider("Brightness", 3.5F, 1.0F, 8.0F, 0.5F);
+    public final SliderSetting pulseSpeed = slider("Pulse Speed", 1.0F, 0.0F, 4.0F, 0.2F);
     
     public final ColorSetting startColor = color("Start Color", ColorUtil.rgba(255, 100, 200, 255));
     public final ColorSetting endColor = color("End Color", ColorUtil.rgba(100, 200, 255, 255));
@@ -133,25 +133,24 @@ public final class Trails extends Module {
             
             if (speed < 0.05) continue;
 
-            int trailLength = this.trailLength.getValue().intValue();
             float width = trailWidth.getValue();
             
             // Spawn multiple points per frame for smoother trails
-            int pointsPerFrame = Math.max(1, (int) (speed * 3.0));
+            int pointsPerFrame = Math.max(2, (int) (speed * 4.0));
             
             for (int i = 0; i < pointsPerFrame; i++) {
                 double offset = (double) i / pointsPerFrame;
-                Vec3 trailPos = pos.add(entity.getDeltaMovement().scale(-offset * 0.5));
+                Vec3 trailPos = pos.add(entity.getDeltaMovement().scale(-offset * 0.3));
                 
-                // Spiral mode
+                // Spiral mode - smoother rotation
                 if (spiralMode.getValue()) {
                     double radius = spiralRadius.getValue();
                     double time = System.currentTimeMillis() * 0.001;
-                    double angle = time * 8.0 + entity.getId() * 0.1;
+                    double angle = time * 6.0 + entity.getId() * 0.1;
                     trailPos = trailPos.add(
                             Math.cos(angle) * radius,
-                            Math.sin(angle) * radius,
-                            Math.sin(angle * 0.5) * radius * 0.5
+                            Math.sin(angle * 0.7) * radius * 0.6,
+                            Math.sin(angle) * radius
                     );
                 }
                 
@@ -161,8 +160,9 @@ public final class Trails extends Module {
             }
         }
 
-        // Limit trail count
-        while (trails.size() > 5000) {
+        // Limit trail count based on trail length setting
+        int maxLength = this.trailLength.getValue().intValue() * 100;
+        while (trails.size() > maxLength) {
             trails.remove(0);
         }
     }
@@ -173,14 +173,16 @@ public final class Trails extends Module {
         
         switch (mode) {
             case "Rainbow": {
-                float hue = (float) ((pos.x + pos.z) * 0.1 + time * 0.5) % 1.0F;
+                float hue = (float) ((pos.x * 0.05 + pos.z * 0.05 + time * 0.3) % 1.0F);
                 if (hue < 0) hue += 1.0F;
-                return ColorUtil.fromHsv(hue, 1.0F, 1.0F, 255);
+                return ColorUtil.fromHsv(hue, 0.85F, 1.0F, 255);
             }
             
             case "Gradient": {
-                float t = (float) ((pos.y + time) % 2.0) / 2.0F;
+                float t = (float) ((pos.y * 0.2 + time * 0.5) % 2.0) / 2.0F;
                 if (t < 0) t += 1.0F;
+                // Smoother ping-pong
+                t = (float) Math.sin(t * Math.PI);
                 return ColorUtil.lerp(startColor.getValue(), endColor.getValue(), t);
             }
             
@@ -189,23 +191,27 @@ public final class Trails extends Module {
             }
             
             case "Crystal": {
-                float hue = (float) (Math.sin(time * 2.0 + entity.getId()) * 0.5 + 0.5);
-                return ColorUtil.fromHsv(0.5F + hue * 0.3F, 0.8F, 1.0F, 255);
+                float hue = (float) (0.55 + Math.sin(time * 1.5 + entity.getId() * 0.1) * 0.15);
+                return ColorUtil.fromHsv(hue, 0.7F, 1.0F, 255);
             }
             
             case "Aurora": {
-                float hue = (float) (0.3 + Math.sin(time + pos.x * 0.3) * 0.15 + Math.cos(time * 0.7 + pos.z * 0.3) * 0.15);
-                return ColorUtil.fromHsv(hue, 0.9F, 1.0F, 255);
+                float hue = (float) (0.35 + Math.sin(time * 0.8 + pos.x * 0.2) * 0.12 + Math.cos(time * 0.6 + pos.z * 0.2) * 0.12);
+                return ColorUtil.fromHsv(hue, 0.85F, 1.0F, 255);
             }
             
             case "Neon": {
-                int neonIndex = (int) (time * 2.0) % 4;
-                switch (neonIndex) {
-                    case 0: return ColorUtil.rgba(255, 0, 255, 255);
-                    case 1: return ColorUtil.rgba(0, 255, 255, 255);
-                    case 2: return ColorUtil.rgba(255, 255, 0, 255);
-                    default: return ColorUtil.rgba(0, 255, 128, 255);
-                }
+                int neonIndex = (int) (time * 1.5) % 4;
+                float blend = (float) ((time * 1.5) % 1.0);
+                // Smooth transition between neon colors
+                int colors[] = {
+                    ColorUtil.rgba(255, 50, 255, 255),
+                    ColorUtil.rgba(50, 255, 255, 255),
+                    ColorUtil.rgba(255, 255, 50, 255),
+                    ColorUtil.rgba(50, 255, 150, 255)
+                };
+                int next = (neonIndex + 1) % 4;
+                return ColorUtil.lerp(colors[neonIndex], colors[next], blend);
             }
             
             default:
@@ -221,7 +227,7 @@ public final class Trails extends Module {
         boolean throughWalls = this.throughWalls.getValue();
         
         float time = System.currentTimeMillis() * 0.001F;
-        float pulse = (float) (Math.sin(time * pulseSpeed * 2.0 * Math.PI) * 0.3 + 0.7);
+        float pulse = pulseSpeed > 0 ? (float) (Math.sin(time * pulseSpeed * 2.0 * Math.PI) * 0.15 + 0.85) : 1.0F;
 
         List<ParticlesWorldRenderer.Sprite> sprites = new ArrayList<>();
 
@@ -230,25 +236,25 @@ public final class Trails extends Module {
             float maxAge = 2.5F / fadeSpeed;
             float lifeProgress = 1.0F - (age / maxAge);
             
-            // Smooth fade out with ease
-            float alpha = lifeProgress * lifeProgress * (3.0F - 2.0F * lifeProgress);
+            // Smoother fade out with cubic easing
+            float alpha = lifeProgress * lifeProgress * lifeProgress;
             alpha *= pulse;
             
-            if (alpha < 0.01F) continue;
+            if (alpha < 0.02F) continue;
 
             int color = ColorUtil.multiplyAlpha(trail.color, alpha);
-            float size = trail.size * (0.5F + alpha * 0.5F);
+            float size = trail.size * (0.3F + alpha * 0.7F);
 
-            // Add glow effect - outer larger sprite
-            sprites.add(new ParticlesWorldRenderer.Sprite(trail.pos, size * 2.5F, 
-                    ColorUtil.multiplyAlpha(color, 0.3F)));
+            // Outer glow - softer and larger
+            sprites.add(new ParticlesWorldRenderer.Sprite(trail.pos, size * 2.0F, 
+                    ColorUtil.multiplyAlpha(color, 0.25F)));
             
-            // Core bright sprite
+            // Main particle
             sprites.add(new ParticlesWorldRenderer.Sprite(trail.pos, size, color));
             
-            // Inner white core for extra brightness
-            sprites.add(new ParticlesWorldRenderer.Sprite(trail.pos, size * 0.4F, 
-                    ColorUtil.rgba(255, 255, 255, (int) (alpha * 200))));
+            // Inner bright core - smaller for better definition
+            sprites.add(new ParticlesWorldRenderer.Sprite(trail.pos, size * 0.35F, 
+                    ColorUtil.rgba(255, 255, 255, (int) (alpha * 180))));
         }
 
         if (!sprites.isEmpty()) {

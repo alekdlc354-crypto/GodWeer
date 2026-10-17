@@ -31,27 +31,27 @@ public final class PopEffect extends Module {
 
     // === Hit Effect ===
     public final ModeSetting hitEffect = mode("Hit Effect", "Explosion", "Explosion", "Lightning", "Off");
-    public final ColorSetting hitColor = color("Hit Color", ColorUtil.rgba(255, 60, 120, 255)).visible(() -> !themeColor.getValue());
-    public final SliderSetting hitCount = slider("Hit Particles", 50.0F, 10.0F, 150.0F, 5.0F).visible(() -> !isHitOff());
-    public final SliderSetting hitSize = slider("Hit Size", 0.35F, 0.1F, 1.0F, 0.05F).visible(() -> !isHitOff());
-    public final SliderSetting hitLifetime = slider("Hit Lifetime", 1.2F, 0.3F, 3.0F, 0.1F).visible(() -> !isHitOff());
+    public final ColorSetting hitColor = color("Hit Color", ColorUtil.rgba(255, 80, 140, 255)).visible(() -> !themeColor.getValue());
+    public final SliderSetting hitCount = slider("Hit Particles", 40.0F, 10.0F, 150.0F, 5.0F).visible(() -> !isHitOff());
+    public final SliderSetting hitSize = slider("Hit Size", 0.3F, 0.1F, 1.0F, 0.05F).visible(() -> !isHitOff());
+    public final SliderSetting hitLifetime = slider("Hit Lifetime", 1.0F, 0.3F, 3.0F, 0.1F).visible(() -> !isHitOff());
 
     // === Kill Effect ===
     public final ModeSetting killEffect = mode("Kill Effect", "Beam", "Beam", "Explosion", "Off");
-    public final ColorSetting killColor = color("Kill Color", ColorUtil.rgba(255, 40, 40, 255)).visible(() -> !themeColor.getValue());
-    public final SliderSetting killCount = slider("Kill Particles", 80.0F, 15.0F, 200.0F, 5.0F).visible(() -> !isKillOff());
-    public final SliderSetting killSize = slider("Kill Size", 0.45F, 0.1F, 1.2F, 0.05F).visible(() -> !isKillOff());
-    public final SliderSetting killLifetime = slider("Kill Lifetime", 2.5F, 0.5F, 5.0F, 0.1F).visible(() -> !isKillOff());
+    public final ColorSetting killColor = color("Kill Color", ColorUtil.rgba(255, 50, 50, 255)).visible(() -> !themeColor.getValue());
+    public final SliderSetting killCount = slider("Kill Particles", 60.0F, 15.0F, 200.0F, 5.0F).visible(() -> !isKillOff());
+    public final SliderSetting killSize = slider("Kill Size", 0.4F, 0.1F, 1.2F, 0.05F).visible(() -> !isKillOff());
+    public final SliderSetting killLifetime = slider("Kill Lifetime", 2.2F, 0.5F, 5.0F, 0.1F).visible(() -> !isKillOff());
 
     // === Totem Pop Effect ===
     public final ModeSetting totemEffect = mode("Totem Effect", "Spiral", "Spiral", "Beam", "Explosion", "Off");
-    public final SliderSetting totemCount = slider("Totem Particles", 100.0F, 20.0F, 250.0F, 5.0F).visible(() -> !isTotemOff());
-    public final SliderSetting totemSize = slider("Totem Size", 0.4F, 0.1F, 1.0F, 0.05F).visible(() -> !isTotemOff());
-    public final SliderSetting totemLifetime = slider("Totem Lifetime", 2.8F, 0.5F, 5.0F, 0.1F).visible(() -> !isTotemOff());
+    public final SliderSetting totemCount = slider("Totem Particles", 80.0F, 20.0F, 250.0F, 5.0F).visible(() -> !isTotemOff());
+    public final SliderSetting totemSize = slider("Totem Size", 0.35F, 0.1F, 1.0F, 0.05F).visible(() -> !isTotemOff());
+    public final SliderSetting totemLifetime = slider("Totem Lifetime", 2.5F, 0.5F, 5.0F, 0.1F).visible(() -> !isTotemOff());
 
     // === Global ===
     public final SliderSetting speed = slider("Speed", 1.0F, 0.2F, 3.0F, 0.1F);
-    public final SliderSetting brightness = slider("Brightness", 4.0F, 1.0F, 8.0F, 0.5F);
+    public final SliderSetting brightness = slider("Brightness", 3.5F, 1.0F, 8.0F, 0.5F);
     public final CheckBox throughWalls = checkbox("Through Walls", true);
 
     private final PopEffectRenderer renderer = new PopEffectRenderer();
