@@ -54,7 +54,6 @@ public abstract class LevelRendererMixin {
             targetEsp.getCrystalsRenderer().setTarget(target);
             float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
             targetEsp.getCrystalsRenderer().render(
-                poseStack,
                 tickDelta,
                 targetEsp.crystalColorA.getValue(),
                 targetEsp.crystalColorB.getValue(),
