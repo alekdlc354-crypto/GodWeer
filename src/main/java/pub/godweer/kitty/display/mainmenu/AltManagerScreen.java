@@ -129,7 +129,7 @@ public class AltManagerScreen extends Screen {
             selected = null;
         }
 
-        int listX = width / 2 - LIST_WIDTH - 10;
+        int listX = Math.max(4, width / 2 - LIST_WIDTH - 10);
         int right = Math.min(width / 2 + 55, Math.max(listX + LIST_WIDTH + 10, width - 90));
 
         nameBox = new EditBox(font, listX, 18, 150, 18, Component.literal("Nick"));

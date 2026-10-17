@@ -21,3 +21,14 @@ Fabric Loader сам подставляет фиктивный accessToken, а �
 Нужна JDK 25. Первый запуск долгий: Loom качает Minecraft, ассеты и нативы.
 
 Эквивалент вручную: `gradlew runClient --console=plain`.
+
+## Скачать готовую джарку
+
+Клиент собирается в GitHub Actions на JDK 25, артефакт называется `GodWeer-Phone`:
+
+https://github.com/alekdlc354-crypto/GodWeer/actions/workflows/build.yml?query=branch%3Aarena%2F105465d2-godweer
+
+Открой последнюю успешную сборку и внизу страницы нажми `GodWeer-Phone` —
+скачается zip с `Phone-Sosiski.jar`. Это обычный Fabric-мод: кладёшь в
+`.minecraft/mods` рядом с Fabric API и Fabric Loader. Лицензия не нужна,
+запускать можно через `run client.bat` или любой лаунчер в офлайн-режиме.
