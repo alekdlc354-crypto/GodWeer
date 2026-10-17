@@ -98,7 +98,7 @@ public final class Trajectories extends Module {
             trajectory.add(pos);
 
             // Check if hit ground or entity
-            if (mc.level.getBlockState(pos.toBlockPos()).isSolid()) {
+            if (mc.level.getBlockState(net.minecraft.core.BlockPos.containing(pos.x, pos.y, pos.z)).isSolid()) {
                 break;
             }
         }

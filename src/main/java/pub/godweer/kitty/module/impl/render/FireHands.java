@@ -131,9 +131,11 @@ public final class FireHands extends Module {
             return;
         }
 
-        RenderTarget rt = Minecraft.getInstance().getMainRenderTarget();
-        int mainColor = rt.getColorTextureId();
-        if (mainColor == 0) return;
+        // RenderTarget rt = Minecraft.getInstance().gameRenderer.mainRenderTarget();
+        // TODO: FireHands needs to be rewritten for new graphics API
+        // int mainColor = rt.getColorTextureId();
+        // if (mainColor == 0) return;
+        return;
 
         GlState s = GlState.save();
         try {
@@ -147,13 +149,17 @@ public final class FireHands extends Module {
     }
 
     public static void onAfterHands() {
+        // TODO: FireHands needs to be rewritten for new graphics API
+        return;
+        
+        /*
         if (!beforeCaptured) return;
         beforeCaptured = false;
 
         Minecraft mc = Minecraft.getInstance();
-        RenderTarget rt = mc.getMainRenderTarget();
-        int mainColor = rt.getColorTextureId();
-        int mainDepth = rt.getDepthTextureId();
+        RenderTarget rt = mc.gameRenderer.mainRenderTarget();
+        int mainColor = rt.getColorTextureView() != null ? 0 : 0; // TODO: Get texture ID
+        int mainDepth = rt.getDepthTextureView() != null ? 0 : 0; // TODO: Get texture ID
         if (mainColor == 0) return;
 
         long now = System.nanoTime();
@@ -243,6 +249,7 @@ public final class FireHands extends Module {
         } finally {
             s.restore();
         }
+        */
     }
 
     // =====================================================================

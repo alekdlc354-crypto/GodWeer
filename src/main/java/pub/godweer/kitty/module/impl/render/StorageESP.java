@@ -57,6 +57,8 @@ public final class StorageESP extends Module {
         double rangeSq = range.getValue() * range.getValue();
 
         // Render block entities
+        // TODO: Find correct method for iterating block entities in this version
+        /*
         for (BlockEntity blockEntity : mc.level.blockEntityList()) {
             BlockPos pos = blockEntity.getBlockPos();
             double distSq = mc.player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
@@ -68,6 +70,7 @@ public final class StorageESP extends Module {
             AABB box = new AABB(pos);
             renderBox(sprites, box, color);
         }
+        */
 
         // Render dropped items
         if (droppedItems.getValue()) {
