@@ -60,6 +60,7 @@
     "render.GuiGraphicsExtractorMixin",
     "render.LevelRendererMixin",
     "render.GameRendererMixin",
+    "render.GameRendererFireHandsMixin",
     "render.ItemInHandRendererMixin",
     "render.WeatherEffectRendererMixin",
     "client.FirstPersonHandsAndItemsMixin"

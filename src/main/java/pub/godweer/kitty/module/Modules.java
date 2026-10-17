@@ -46,6 +46,7 @@ public class Modules {
     public FreeLook freeLook;
     public ShaderHands shaderHands;
     public GlowHands glowHands;
+    public FireHands fireHands;
     public Chams chams;
     public ViewModel viewModel;
     public SwingAnimation swingAnimation;
@@ -101,6 +102,7 @@ public class Modules {
         this.autoTotem = new AutoTotem();
         this.shaderHands = new ShaderHands();
         this.glowHands = new GlowHands();
+        this.fireHands = new FireHands();
         this.chams = new Chams();
         this.betterMinecraft = new BetterMinecraft();
         this.guiWalk = new GuiWalk();
@@ -132,6 +134,7 @@ public class Modules {
                 this.shaderSky,
                 this.shaderHands,
                 this.glowHands,
+                this.fireHands,
                 this.chams,
                 this.rain,
                 this.targetEsp,
