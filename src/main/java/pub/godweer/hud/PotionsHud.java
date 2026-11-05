@@ -2,79 +2,78 @@ package pub.godweer.hud;
 
 import net.minecraft.core.Holder;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import pub.godweer.IMinecraft;
-import pub.godweer.enjoy.event.list.Render2DEvent;
-import pub.godweer.auxiliary.client.clients.ColorUtil;
-import pub.godweer.auxiliary.client.clients.Theme;
-import pub.godweer.auxiliary.render.Render2D;
-import pub.godweer.auxiliary.render.Render2DUtil;
-import pub.godweer.auxiliary.render.renders.font.Fonts;
-import pub.godweer.auxiliary.render.renders.font.IconUse;
+import pub.godweer.util.style.ColorUtil;
+import pub.godweer.util.style.Theme;
+import pub.godweer.util.render.Render2D;
+import pub.godweer.util.render.Render2DUtil;
+import pub.godweer.util.render.font.Fonts;
+import pub.godweer.util.render.font.IconUse;
+import pub.godweer.event.list.Render2DEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * Active potions list with icon header, rounded slots and row animations.
+ * Effects HUD as the reference screenshot draws it: one header pill, then one
+ * pill per effect — name, amplifier, remaining time, and the effect icon at the
+ * right edge. No shared card, no progress ring.
  */
 public final class PotionsHud extends HudElement implements IMinecraft {
 
-    private static final float PAD = 6.0F;
-    private static final float HEADER_H = 16.0F;
-    private static final float ROW_H = 14.0F;
-    private static final int BG = ColorUtil.rgba(8, 8, 12, 228);
-    private static final int RED = ColorUtil.rgba(255, 77, 82, 255);
-    private static final int RING_TRACK = ColorUtil.rgba(255, 255, 255, 28);
-    private static final float RING_R = 4.4F;
-    private static final float RING_THICK = 1.7F;
-    private static final float RING_SIZE = RING_R * 2.0F + RING_THICK + 2.0F;
+    private static final float ROW_GAP = 3.0F;
+    private static final float TEXT = 7.5F;
+    private static final float FX_ICON = 9.0F;
 
-    private static final class Potion {
-        final Identifier icon;
-        final String name;
-        final String time;
-        final boolean bad;
-        final int duration;
-        final boolean infinite;
+    private static final int HARM_COLOR = ColorUtil.rgba(255, 84, 92, 255);
 
-        Potion(Identifier icon, String name, String time, boolean bad, int duration, boolean infinite) {
+    private static final class EffectRow {
+        final String key;
+        Identifier icon;
+        String baseName;
+        int amplifier;
+        String timeText;
+        boolean bad;
+        float anim;
+        boolean present;
+
+        EffectRow(String key, Identifier icon, String baseName, int amplifier,
+                  String timeText, boolean bad) {
+            this.key = key;
             this.icon = icon;
-            this.name = name;
-            this.time = time;
+            this.baseName = baseName;
+            this.amplifier = amplifier;
+            this.timeText = timeText;
             this.bad = bad;
-            this.duration = duration;
-            this.infinite = infinite;
-        }
-
-        String key() {
-            return icon.toString() + "|" + name;
+            this.anim = 0.0F;
+            this.present = true;
         }
     }
 
-    private final Map<String, Float> anims = new HashMap<>();
-    private final Map<String, Integer> maxDurations = new HashMap<>();
+    private final Map<String, EffectRow> rows = new LinkedHashMap<>();
     private float animatedW = -1.0F;
+    private float animatedH = -1.0F;
 
     public PotionsHud() {
-        super("potions", "Potions", 10.0F, 98.0F, 140.0F, 60.0F);
+        super("potions", "Potions", 440.0F, 305.0F, 148.0F, 76.0F);
     }
 
-    @Override
-    public boolean shouldRender() {
-        if (!enabled) return false;
-        if (HudManager.editMode()) return true;
-        return mc.player != null && !mc.player.getActiveEffects().isEmpty();
-    }
+    private void syncEffects() {
+        if (!beginSyncFrame()) return;
+        for (EffectRow r : rows.values()) {
+            r.present = false;
+        }
 
-    private List<Potion> potions() {
-        List<Potion> out = new ArrayList<>();
+        boolean hasReal = false;
         if (mc.player != null) {
             Collection<MobEffectInstance> fx = mc.player.getActiveEffects();
             for (MobEffectInstance inst : fx) {
@@ -83,144 +82,164 @@ public final class PotionsHud extends HudElement implements IMinecraft {
                 Identifier id = holder.unwrapKey().map(k -> k.identifier()).orElse(null);
                 if (id == null) continue;
                 Identifier tex = id.withPath(p -> "textures/mob_effect/" + p + ".png");
-                String name = eff.getDisplayName().getString();
-                if (inst.getAmplifier() > 0) name += " " + (inst.getAmplifier() + 1);
+                String baseName = eff.getDisplayName().getString();
+                int amp = inst.getAmplifier() + 1;
                 String t;
-                boolean infinite = inst.isInfiniteDuration();
-                if (infinite) {
+                if (inst.isInfiniteDuration()) {
                     t = "**:**";
                 } else {
-                    int sec = inst.getDuration() / 20;
-                    t = String.format("%d:%02d", sec / 60, sec % 60);
+                    int sec = Math.max(0, inst.getDuration() / 20);
+                    t = String.format(Locale.ROOT, "%d:%02d", sec / 60, sec % 60);
                 }
-                out.add(new Potion(tex, name, t, eff.getCategory() == MobEffectCategory.HARMFUL,
-                        inst.getDuration(), infinite));
+                upsert(id.toString(), tex, baseName, amp, t,
+                        eff.getCategory() == MobEffectCategory.HARMFUL);
+                hasReal = true;
             }
         }
-        if (out.isEmpty() && HudManager.editMode()) {
-            out.add(new Potion(Identifier.withDefaultNamespace("textures/mob_effect/fire_resistance.png"), "Огнестойкость", "4:35", false, 5500, false));
-            out.add(new Potion(Identifier.withDefaultNamespace("textures/mob_effect/absorption.png"), "Поглощение", "1:35", false, 1900, false));
-            out.add(new Potion(Identifier.withDefaultNamespace("textures/mob_effect/resistance.png"), "Сопротивление", "4:03", false, 4860, false));
+
+        if (!hasReal && HudManager.editMode()) {
+            upsert("speed", Identifier.withDefaultNamespace("textures/mob_effect/speed.png"),
+                    "Скорость", 2, "4:19", false);
+            upsert("strength", Identifier.withDefaultNamespace("textures/mob_effect/strength.png"),
+                    "Сила", 2, "0:25", false);
+            upsert("haste", Identifier.withDefaultNamespace("textures/mob_effect/haste.png"),
+                    "Спешка", 1, "1:25", false);
         }
-        return out;
+
+        Iterator<Map.Entry<String, EffectRow>> it = rows.entrySet().iterator();
+        while (it.hasNext()) {
+            EffectRow r = it.next().getValue();
+            r.anim += ((r.present ? 1.0F : 0.0F) - r.anim) * 0.24F;
+            if (!r.present && r.anim < 0.02F) {
+                it.remove();
+            }
+        }
+    }
+
+    private void upsert(String key, Identifier icon, String baseName, int amplifier,
+                        String timeText, boolean bad) {
+        EffectRow r = rows.get(key);
+        if (r == null) {
+            rows.put(key, new EffectRow(key, icon, baseName, amplifier, timeText, bad));
+        } else {
+            r.icon = icon;
+            r.baseName = baseName;
+            r.amplifier = amplifier;
+            r.timeText = timeText;
+            r.bad = bad;
+            r.present = true;
+        }
+    }
+
+    @Override
+    public boolean shouldRender() {
+        if (!enabled) return false;
+        if (HudManager.editMode()) return true;
+        syncEffects();
+        for (EffectRow r : rows.values()) {
+            if (r.present || r.anim > 0.03F) return true;
+        }
+        return false;
     }
 
     @Override
     public void draw(Render2DEvent event) {
-        List<Potion> pots = potions();
-        if (pots.isEmpty() && !HudManager.editMode()) {
-            this.width = 0;
-            this.height = 0;
+        syncEffects();
+
+        List<EffectRow> sorted = new ArrayList<>(rows.values());
+        sorted.sort(Comparator.comparing(r -> r.baseName.toLowerCase(Locale.ROOT)));
+
+        if (sorted.isEmpty() && !HudManager.editMode()) {
+            this.width = 0.0F;
+            this.height = 0.0F;
             return;
         }
 
-        for (Potion p : pots) {
-            anims.putIfAbsent(p.key(), 0.0F);
-        }
-        float listH = 0.0F;
-        float maxW = Fonts.SF_MEDIUM.getWidth("Active potions", 8.0F) + 26.0F;
-        for (Potion p : pots) {
-            float a = anims.getOrDefault(p.key(), 0.0F);
-            a += (1.0F - a) * 0.2F;
-            anims.put(p.key(), a);
-            if (!p.infinite) {
-                int prev = maxDurations.getOrDefault(p.key(), 0);
-                if (p.duration > prev) maxDurations.put(p.key(), p.duration);
-            }
-            listH += ROW_H * a;
-            if (a > 0.05F) {
-                maxW = Math.max(maxW, 16.0F + Fonts.SF_MEDIUM.getWidth(p.name, 7.5F)
-                        + RING_SIZE + 3.0F + Fonts.SF_MEDIUM.getWidth(p.time, 7.5F) + 14.0F);
-            }
-        }
-        anims.keySet().removeIf(k -> {
-            boolean gone = true;
-            for (Potion p : pots) {
-                if (p.key().equals(k)) {
-                    gone = false;
-                    break;
-                }
-            }
-            return gone;
-        });
-        maxDurations.keySet().removeIf(k -> {
-            for (Potion p : pots) {
-                if (p.key().equals(k)) return false;
-            }
-            return true;
-        });
+        String title = "Active potions";
+        float headerW = HudStyle.PILL_PAD * 2.0F
+                + HudStyle.segmentWidth(IconUse.POTION, title, TEXT);
 
-        float targetW = Math.max(120.0F, maxW + PAD * 2.0F);
+        float maxW = headerW;
+        int visible = 0;
+        for (EffectRow r : sorted) {
+            if (r.anim > 0.03F) visible++;
+            if (r.anim > 0.05F) {
+                maxW = Math.max(maxW, rowWidth(r));
+            }
+        }
+
+        float targetW = maxW;
+        float targetH = HudStyle.PILL_H + ROW_GAP + visible * (HudStyle.PILL_H + ROW_GAP);
+
         if (animatedW < 0.0F) animatedW = targetW;
-        animatedW += (targetW - animatedW) * 0.25F;
+        if (animatedH < 0.0F) animatedH = targetH;
+        animatedW += (targetW - animatedW) * 0.26F;
+        animatedH += (targetH - animatedH) * 0.26F;
 
         this.width = animatedW;
-        this.height = PAD * 2.0F + HEADER_H + Math.max(ROW_H, listH);
+        this.height = animatedH;
 
-        Render2D.drawBlur(x, y, width, height, 8.0F, BG, 1.0F);
-
-        int accent = Theme.getAccentColor();
-        int white = ColorUtil.rgba(240, 242, 248, 255);
-        int gray = ColorUtil.rgba(150, 155, 170, 255);
-
-        Render2D.drawRoundedRect(x + PAD, y + PAD + 1.0F, 12.0F, 12.0F, 4.0F,
-                ColorUtil.withAlpha(accent, 45));
-        Fonts.drawIcon(IconUse.POTION, x + PAD + 2.0F, y + PAD + 3.0F, 8.0F,
-                ColorUtil.withAlpha(accent, 255));
-        Fonts.drawString(Fonts.SF_MEDIUM, "Active potions", x + PAD + 16.0F, y + PAD + 2.5F, 8.0F,
-                ColorUtil.withAlpha(accent, 255));
+        float cy = y;
+        HudStyle.drawPill(x, cy, headerW);
+        HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
+                IconUse.POTION, title, TEXT, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
+        cy += HudStyle.PILL_H + ROW_GAP;
 
         var extractor = event.getGuiGraphicsExtractor();
-        float cy = y + PAD + HEADER_H;
-        for (Potion p : pots) {
-            float a = anims.getOrDefault(p.key(), 1.0F);
-            float rh = ROW_H * a;
-            if (a <= 0.04F) continue;
-            float slide = (1.0F - a) * -5.0F;
+        int accent = Theme.getAccentColor();
 
-            Render2D.drawRoundedRect(x + PAD + slide, cy + 1.5F, 11.0F, 11.0F, 3.5F,
-                    ColorUtil.rgba(255, 255, 255, (int) (10 * a)));
-            float iconSize = 9.0F * a;
-            if (extractor != null && iconSize > 2.0F) {
+        for (EffectRow r : sorted) {
+            float a = r.anim;
+            if (a <= 0.03F) continue;
+            float rowW = rowWidth(r);
+            float slide = (1.0F - a) * -6.0F;
+            float pillX = x + slide;
+            float midY = cy + HudStyle.PILL_H / 2.0F;
+
+            HudStyle.drawCard(pillX, cy, rowW, HudStyle.PILL_H, HudStyle.PILL_R, a);
+
+            float nameX = pillX + HudStyle.PILL_PAD;
+            String ampStr = r.amplifier > 1 ? " " + r.amplifier : "";
+            float ampW = Fonts.SF_MEDIUM.getWidth(ampStr, TEXT);
+            float timeW = Fonts.SF_MEDIUM.getWidth(r.timeText, TEXT);
+            float rightBlock = FX_ICON + 4.0F + HudStyle.DIVIDER_W + 4.0F + timeW + HudStyle.PILL_PAD;
+            String shown = ServerGui.ellipsize(r.baseName,
+                    Math.max(16.0F, rowW - rightBlock - HudStyle.PILL_PAD - ampW), TEXT);
+
+            Fonts.drawString(Fonts.SF_MEDIUM, shown, nameX, midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F,
+                    TEXT, ColorUtil.multiplyAlpha(r.bad ? HARM_COLOR : HudStyle.TEXT_PRIMARY, a));
+            if (!ampStr.isEmpty()) {
+                Fonts.drawString(Fonts.SF_MEDIUM, ampStr, nameX + Fonts.SF_MEDIUM.getWidth(shown, TEXT),
+                        midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F, TEXT,
+                        ColorUtil.withAlpha(r.bad ? HARM_COLOR : accent, Math.round(255 * a)));
+            }
+
+            float tailX = pillX + rowW - HudStyle.PILL_PAD - FX_ICON;
+            if (extractor != null && r.icon != null) {
                 Render2DUtil.flush();
                 extractor.pose().pushMatrix();
-                extractor.pose().translate(x + PAD + slide + (11.0F - iconSize) / 2.0F, cy + 1.5F + (11.0F - iconSize) / 2.0F);
-                float sc = iconSize / 18.0F;
+                extractor.pose().translate(tailX, midY - FX_ICON / 2.0F);
+                float sc = FX_ICON / 18.0F;
                 extractor.pose().scale(sc, sc);
-                extractor.blit(p.icon, 0, 0, 18, 18, 0.0F, 1.0F, 0.0F, 1.0F);
+                extractor.blit(r.icon, 0, 0, 18, 18, 0.0F, 1.0F, 0.0F, 1.0F);
                 extractor.pose().popMatrix();
             }
-            float ty = cy + (rh - 8.0F) / 2.0F + 0.5F;
-            float tw = Fonts.SF_MEDIUM.getWidth(p.time, 7.5F);
-            float timeX = x + width - PAD - tw;
 
-            float ringCx = timeX - 4.0F - RING_R;
-            float ringCy = cy + rh / 2.0F;
-            float nameAvail = (ringCx - RING_R) - (x + PAD + 15.0F + slide) - 3.0F;
-            if (nameAvail < 10.0F) nameAvail = 10.0F;
+            float divX = tailX - FX_ICON - 4.0F;
+            Render2D.drawRoundedRect(divX, midY - 4.0F, HudStyle.DIVIDER_W, 8.0F, 0.5F,
+                    ColorUtil.multiplyAlpha(HudStyle.DIVIDER, a));
+            Fonts.drawString(Fonts.SF_MEDIUM, r.timeText, divX - 4.0F - timeW,
+                    midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F, TEXT,
+                    ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, a));
 
-            Fonts.drawString(Fonts.SF_MEDIUM, Fonts.SF_MEDIUM.trimToWidth(p.name, nameAvail, 7.5F),
-                    x + PAD + 15.0F + slide, ty, 7.5F, ColorUtil.multiplyAlpha(p.bad ? RED : white, a));
-
-            int timeColor = p.bad
-                    ? ColorUtil.rgba(255, 130, 130, (int) (255 * a))
-                    : ColorUtil.rgba(150, 155, 170, (int) (255 * a));
-            Fonts.drawString(Fonts.SF_MEDIUM, p.time, timeX, ty, 7.5F, timeColor);
-
-            float frac;
-            if (p.infinite) {
-                frac = 1.0F;
-            } else {
-                int max = maxDurations.getOrDefault(p.key(), Math.max(1, p.duration));
-                frac = max <= 0 ? 1.0F : Mth.clamp(p.duration / (float) max, 0.0F, 1.0F);
-            }
-            Render2D.drawArc(ringCx, ringCy, RING_R, RING_THICK, 0.0F, 360.0F,
-                    ColorUtil.multiplyAlpha(RING_TRACK, a));
-            if (frac > 0.001F) {
-                Render2D.drawArc(ringCx, ringCy, RING_R, RING_THICK, -90.0F, 360.0F * frac,
-                        ColorUtil.multiplyAlpha(p.bad ? RED : accent, a));
-            }
-            cy += rh;
+            cy += HudStyle.PILL_H + ROW_GAP;
         }
+    }
+
+    private float rowWidth(EffectRow r) {
+        float ampW = Fonts.SF_MEDIUM.getWidth(r.amplifier > 1 ? " " + r.amplifier : "", TEXT);
+        float timeW = Fonts.SF_MEDIUM.getWidth(r.timeText, TEXT);
+        return HudStyle.PILL_PAD * 2.0F + Fonts.SF_MEDIUM.getWidth(r.baseName, TEXT) + ampW
+                + timeW + FX_ICON + HudStyle.DIVIDER_W + 8.0F;
     }
 }

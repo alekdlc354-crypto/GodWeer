@@ -20,6 +20,8 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     include(implementation('dev.redstones.mediaplayerinfo:media-player-info:0.1.0'))
+    // media-player-info is written in Kotlin - the stdlib has to be on the classpath.
+    include(implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.20"))
     annotationProcessor implementation("org.projectlombok:lombok:1.18.46")
     implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
@@ -62,26 +64,6 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
-}
-
-sourceSets {
-    auraTest {
-        compileClasspath += sourceSets.main.output
-        runtimeClasspath += sourceSets.main.output
-    }
-}
-
-tasks.register('auraTimingTest', JavaExec) {
-    dependsOn tasks.named('auraTestClasses')
-    classpath = sourceSets.auraTest.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
-    mainClass = 'pub.godweer.kitty.module.impl.combat.AuraAttackTimingTest'
-}
-
-tasks.named('check') {
-    dependsOn tasks.named('auraTimingTest')
 }
 
 // configure the maven publication

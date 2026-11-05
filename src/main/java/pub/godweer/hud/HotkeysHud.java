@@ -2,219 +2,185 @@ package pub.godweer.hud;
 
 import pub.godweer.Client;
 import pub.godweer.IMinecraft;
-import pub.godweer.enjoy.event.list.Render2DEvent;
-import pub.godweer.kitty.module.Category;
-import pub.godweer.kitty.module.Module;
-import pub.godweer.auxiliary.client.clients.ColorUtil;
-import pub.godweer.auxiliary.client.clients.Theme;
-import pub.godweer.auxiliary.render.Render2D;
-import pub.godweer.auxiliary.render.renders.font.Fonts;
-import pub.godweer.auxiliary.render.renders.font.IconUse;
+import pub.godweer.util.style.ColorUtil;
+import pub.godweer.util.render.Render2D;
+import pub.godweer.util.render.font.Fonts;
+import pub.godweer.util.render.font.IconUse;
+import pub.godweer.event.list.Render2DEvent;
+import pub.godweer.module.Category;
+import pub.godweer.module.Module;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * Hotkeys list: header icon, category icon, rounded key pills, row animations.
+ * Binds HUD as the reference screenshot draws it: one header pill, then one pill
+ * per enabled module — name on the left, a thin stroke and the key on the right.
+ * No keycap box, no shared card.
  */
 public final class HotkeysHud extends HudElement implements IMinecraft {
 
-    private static final float PAD = 6.0F;
-    private static final float HEADER_H = 16.0F;
-    private static final float ROW_H = 13.5F;
-    private static final float ICON_SZ = 8.0F;
-    private static final int BG = ColorUtil.rgba(8, 8, 12, 228);
+    private static final float ROW_GAP = 3.0F;
+    private static final float NAME = 7.5F;
+    private static final float KEY = 7.0F;
 
-    private record Entry(Module module, String key) {}
+    private static final class BindRow {
+        final String id;
+        String name;
+        String keyText;
+        float anim;
+        boolean present;
 
-    private static IconUse catIcon(Category c) {
-        return switch (c) {
-            case COMBAT -> IconUse.FIGHT;
-            case MOVEMENT -> IconUse.MOVEMENT;
-            case RENDER -> IconUse.RENDER;
-            case PLAYER -> IconUse.PLAYER;
-            case MISC -> IconUse.MISC;
-        };
+        BindRow(String id, String name, String keyText) {
+            this.id = id;
+            this.name = name;
+            this.keyText = keyText;
+            this.anim = 0.0F;
+            this.present = true;
+        }
     }
 
-    private final Map<String, Float> anims = new HashMap<>();
-    private final Map<String, Float> switchAnims = new HashMap<>();
+    private final Map<String, BindRow> rows = new LinkedHashMap<>();
     private float animatedW = -1.0F;
+    private float animatedH = -1.0F;
 
     public HotkeysHud() {
-        super("hotkeys", "Hotkeys", 262.0F, 60.0F, 116.0F, 70.0F);
+        super("hotkeys", "Hotkeys", 12.0F, 145.0F, 128.0F, 76.0F);
+    }
+
+    private void syncBinds() {
+        if (!beginSyncFrame()) return;
+        for (BindRow r : rows.values()) {
+            r.present = false;
+        }
+
+        boolean anyActive = false;
+        if (Client.INSTANCE != null && Client.INSTANCE.moduleManager != null) {
+            for (Module m : Client.INSTANCE.moduleManager.getModules()) {
+                if (m == null || !m.isEnabled()) continue;
+                if (m.getBind() == null || !m.getBind().isBound()) continue;
+                String keyStr = m.getBind().getDisplayValue();
+                if (keyStr == null || keyStr.equalsIgnoreCase("NONE") || keyStr.isEmpty()) continue;
+
+                upsert(m.getName().toLowerCase(Locale.ROOT), m.getName(), keyStr);
+                anyActive = true;
+            }
+        }
+
+        if (!anyActive && HudManager.editMode()) {
+            upsert("speed", "Speed", "G");
+        }
+
+        Iterator<Map.Entry<String, BindRow>> it = rows.entrySet().iterator();
+        while (it.hasNext()) {
+            BindRow r = it.next().getValue();
+            r.anim += ((r.present ? 1.0F : 0.0F) - r.anim) * 0.24F;
+            if (!r.present && r.anim < 0.02F) {
+                it.remove();
+            }
+        }
+    }
+
+    private void upsert(String id, String name, String keyText) {
+        BindRow r = rows.get(id);
+        if (r == null) {
+            rows.put(id, new BindRow(id, name, keyText));
+        } else {
+            r.name = name;
+            r.keyText = keyText;
+            r.present = true;
+        }
     }
 
     @Override
     public boolean shouldRender() {
         if (!enabled) return false;
         if (HudManager.editMode()) return true;
-        return !hotkeys().isEmpty();
-    }
-
-    private List<Entry> hotkeys() {
-        List<Entry> out = new ArrayList<>();
-        if (Client.INSTANCE != null && Client.INSTANCE.moduleManager != null) {
-            for (Module m : Client.INSTANCE.moduleManager.getModules()) {
-                if (m.getBind() != null && m.getBind().isBound()) {
-                    String d = m.getBind().getDisplayValue();
-                    if (!d.equalsIgnoreCase("NONE")) out.add(new Entry(m, d));
-                }
-            }
-            // Enabled first, then by name — stable order.
-            out.sort((a, b) -> {
-                boolean ao = a.module() != null && a.module().isEnabled();
-                boolean bo = b.module() != null && b.module().isEnabled();
-                if (ao != bo) return ao ? -1 : 1;
-                String an = a.module() != null ? a.module().getName() : "";
-                String bn = b.module() != null ? b.module().getName() : "";
-                return an.compareToIgnoreCase(bn);
-            });
+        syncBinds();
+        for (BindRow r : rows.values()) {
+            if (r.present || r.anim > 0.03F) return true;
         }
-        if (out.isEmpty() && HudManager.editMode()) {
-            out.add(new Entry(null, "R"));
-            out.add(new Entry(null, "R"));
-            out.add(new Entry(null, "-"));
-            out.add(new Entry(null, "O"));
-        }
-        return out;
-    }
-
-    private String demoName(int idx) {
-        return switch (idx) {
-            case 0 -> "Aura";
-            case 1 -> "AirStuck";
-            case 2 -> "Levitation";
-            default -> "GriefGlide";
-        };
-    }
-
-    private static Category demoCat(int idx) {
-        return switch (idx) {
-            case 0 -> Category.COMBAT;
-            case 1 -> Category.PLAYER;
-            case 2 -> Category.MOVEMENT;
-            default -> Category.MOVEMENT;
-        };
+        return false;
     }
 
     @Override
     public void draw(Render2DEvent event) {
-        List<Entry> keys = hotkeys();
-        if (keys.isEmpty() && !HudManager.editMode()) {
-            this.width = 0;
-            this.height = 0;
+        syncBinds();
+
+        List<BindRow> sorted = new ArrayList<>(rows.values());
+        sorted.sort(Comparator.comparing(r -> r.name.toLowerCase(Locale.ROOT)));
+
+        if (sorted.isEmpty() && !HudManager.editMode()) {
+            this.width = 0.0F;
+            this.height = 0.0F;
             return;
         }
 
-        for (int i = 0; i < keys.size(); i++) {
-            anims.putIfAbsent(rowId(keys.get(i), i).toLowerCase(), 0.0F);
-        }
-        float listH = 0.0F;
-        float maxW = Fonts.SF_MEDIUM.getWidth("Hotkeys", 8.0F) + 26.0F;
-        for (int i = 0; i < keys.size(); i++) {
-            Entry k = keys.get(i);
-            String name = k.module() != null ? k.module().getName() : demoName(i);
-            float a = anims.getOrDefault(rowId(k, i).toLowerCase(), 0.0F);
-            a += (1.0F - a) * 0.2F;
-            anims.put(rowId(k, i).toLowerCase(), a);
-            listH += ROW_H * a;
-            if (a > 0.05F) {
-                maxW = Math.max(maxW, Fonts.SF_MEDIUM.getWidth(name, 7.5F)
-                        + Fonts.SF_MEDIUM.getWidth(k.key(), 7.0F) + 64.0F);
-            }
-        }
-        anims.keySet().removeIf(k -> {
-            for (int i = 0; i < keys.size(); i++) {
-                if (rowId(keys.get(i), i).toLowerCase().equals(k)) return false;
-            }
-            return true;
-        });
+        String title = "Hotkeys";
+        float headerW = HudStyle.PILL_PAD * 2.0F
+                + HudStyle.segmentWidth(IconUse.KEYBOARD, title, NAME);
 
-        float targetW = Math.max(134.0F, maxW + PAD * 2.0F);
+        float maxW = headerW;
+        int visible = 0;
+        for (BindRow r : sorted) {
+            if (r.anim > 0.03F) visible++;
+            if (r.anim > 0.05F) {
+                maxW = Math.max(maxW, rowWidth(r));
+            }
+        }
+
+        float targetW = maxW;
+        float targetH = HudStyle.PILL_H + ROW_GAP + visible * (HudStyle.PILL_H + ROW_GAP);
+
         if (animatedW < 0.0F) animatedW = targetW;
-        animatedW += (targetW - animatedW) * 0.25F;
+        if (animatedH < 0.0F) animatedH = targetH;
+        animatedW += (targetW - animatedW) * 0.26F;
+        animatedH += (targetH - animatedH) * 0.26F;
 
         this.width = animatedW;
-        this.height = PAD * 2.0F + HEADER_H + Math.max(ROW_H, listH);
+        this.height = animatedH;
 
-        Render2D.drawBlur(x, y, width, height, 8.0F, BG, 1.0F);
+        float cy = y;
+        HudStyle.drawPill(x, cy, headerW);
+        HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
+                IconUse.KEYBOARD, title, NAME, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
+        cy += HudStyle.PILL_H + ROW_GAP;
 
-        int accent = Theme.getAccentColor();
-        int white = ColorUtil.rgba(240, 242, 248, 255);
-        Render2D.drawRoundedRect(x + PAD, y + PAD + 1.0F, 12.0F, 12.0F, 4.0F,
-                ColorUtil.withAlpha(accent, 45));
-        Fonts.drawIcon(IconUse.KEYBOARD, x + PAD + 1.5F, y + PAD + 2.5F, 9.0F,
-                ColorUtil.withAlpha(accent, 255));
-        Fonts.drawString(Fonts.SF_MEDIUM, "Hotkeys", x + PAD + 16.0F, y + PAD + 2.5F, 8.0F,
-                ColorUtil.withAlpha(accent, 255));
+        for (BindRow r : sorted) {
+            float a = r.anim;
+            if (a <= 0.03F) continue;
+            float rowW = rowWidth(r);
+            float slide = (1.0F - a) * -6.0F;
+            float pillX = x + slide;
+            float midY = cy + HudStyle.PILL_H / 2.0F;
+            float textY = midY - Fonts.SF_MEDIUM.textHeight(NAME) / 2.0F + 0.35F;
 
-        float cy = y + PAD + HEADER_H;
-        for (int i = 0; i < keys.size(); i++) {
-            Entry k = keys.get(i);
-            String name = k.module() != null ? k.module().getName() : demoName(i);
-            Category cat = k.module() != null ? k.module().getCategory() : demoCat(i);
-            float a = anims.getOrDefault(rowId(k, i).toLowerCase(), 1.0F);
-            float rh = ROW_H * a;
-            if (a <= 0.04F) continue;
-            float slide = (1.0F - a) * -5.0F;
-            boolean on = entryOn(k, i);
-            float dim = on ? 1.0F : 0.5F;
+            HudStyle.drawCard(pillX, cy, rowW, HudStyle.PILL_H, HudStyle.PILL_R, a);
 
-            // Category icon with accent tint
-            Fonts.drawIcon(catIcon(cat), x + PAD + slide, cy + (rh - ICON_SZ) / 2.0F - 0.5F, ICON_SZ,
-                    ColorUtil.multiplyAlpha(on ? accent : Theme.TEXT_MUTED, a * dim));
+            float keyW = Fonts.SF_MEDIUM.getWidth(r.keyText, KEY);
+            float divX = pillX + rowW - HudStyle.PILL_PAD - keyW - 6.0F;
+            String shown = ServerGui.ellipsize(r.name,
+                    Math.max(16.0F, divX - 6.0F - (pillX + HudStyle.PILL_PAD)), NAME);
 
-            // Key pill (cell) on the right
-            String key = k.key();
-            float bw = Fonts.SF_MEDIUM.getWidth(key, 7.0F) + 8.0F;
-            float bx = x + width - PAD - bw;
+            Fonts.drawString(Fonts.SF_MEDIUM, shown, pillX + HudStyle.PILL_PAD, textY, NAME,
+                    ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, a));
+            Render2D.drawRoundedRect(divX, midY - 4.0F, HudStyle.DIVIDER_W, 8.0F, 0.5F,
+                    ColorUtil.multiplyAlpha(HudStyle.DIVIDER, a));
+            Fonts.drawString(Fonts.SF_MEDIUM, r.keyText, divX + 6.0F,
+                    midY - Fonts.SF_MEDIUM.textHeight(KEY) / 2.0F + 0.35F, KEY,
+                    ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, a));
 
-            // Animated on/off switch left of the key pill
-            float swA = switchAnim(k, i);
-            float swW = 18.0F, swH = 9.0F;
-            float swX = bx - 5.0F - swW;
-            float swY = cy + (rh - swH) / 2.0F;
-            int track = ColorUtil.lerp(ColorUtil.rgba(52, 55, 68, 255), accent, swA);
-            Render2D.drawRoundedRect(swX, swY, swW, swH, swH / 2.0F,
-                    ColorUtil.multiplyAlpha(track, a * (on ? 1.0F : 0.75F)));
-            float thumbD = 6.5F;
-            float thumbX = swX + 1.25F + (swW - thumbD - 2.5F) * swA;
-            Render2D.drawCircle(thumbX + thumbD / 2.0F, swY + swH / 2.0F, thumbD / 2.0F,
-                    ColorUtil.rgba(255, 255, 255, (int) (255 * a)));
-
-            float nameAvail = swX - 5.0F - (x + PAD + ICON_SZ + 4.0F);
-            Fonts.drawString(Fonts.SF_MEDIUM, Fonts.SF_MEDIUM.trimToWidth(name, Math.max(10.0F, nameAvail), 7.5F),
-                    x + PAD + ICON_SZ + 4.0F + slide, cy + 2.5F, 7.5F,
-                    ColorUtil.multiplyAlpha(white, a * dim));
-
-            Render2D.drawRoundedRectWithOutline(bx, cy + 2.0F, bw, 10.0F, 5.0F,
-                    ColorUtil.rgba(255, 255, 255, (int) (18 * a)), 0.75F,
-                    ColorUtil.withAlpha(on ? accent : Theme.TEXT_MUTED, (int) ((on ? 140 : 70) * a)));
-            Fonts.drawCenteredString(Fonts.SF_MEDIUM, key, bx + bw / 2.0F, cy + 3.0F, 7.0F,
-                    ColorUtil.rgba(235, 238, 245, (int) (255 * a * dim)));
-            cy += rh;
+            cy += HudStyle.PILL_H + ROW_GAP;
         }
     }
 
-    private String rowId(Entry e, int idx) {
-        return e.module() != null ? e.module().getName() : "demo" + idx;
-    }
-
-    private boolean entryOn(Entry e, int idx) {
-        if (e.module() != null) return e.module().isEnabled();
-        return idx != 2;
-    }
-
-    private float switchAnim(Entry e, int idx) {
-        String id = rowId(e, idx).toLowerCase() + "#sw";
-        float target = entryOn(e, idx) ? 1.0F : 0.0F;
-        float v = switchAnims.getOrDefault(id, target);
-        v += (target - v) * 0.3F;
-        if (Math.abs(target - v) < 0.002F) v = target;
-        switchAnims.put(id, v);
-        return v;
+    private static float rowWidth(BindRow r) {
+        return HudStyle.PILL_PAD * 2.0F + Fonts.SF_MEDIUM.getWidth(r.name, NAME) + 6.0F
+                + HudStyle.DIVIDER_W + 6.0F + Fonts.SF_MEDIUM.getWidth(r.keyText, KEY);
     }
 }

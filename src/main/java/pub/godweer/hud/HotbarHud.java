@@ -4,13 +4,13 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import pub.godweer.IMinecraft;
-import pub.godweer.enjoy.event.EventTarget;
-import pub.godweer.enjoy.event.list.Render2DEvent;
-import pub.godweer.auxiliary.client.clients.ColorUtil;
-import pub.godweer.auxiliary.client.clients.Theme;
-import pub.godweer.auxiliary.render.Render2D;
-import pub.godweer.auxiliary.render.Render2DUtil;
-import pub.godweer.auxiliary.render.renders.font.Fonts;
+import pub.godweer.event.EventTarget;
+import pub.godweer.event.list.Render2DEvent;
+import pub.godweer.util.style.ColorUtil;
+import pub.godweer.util.style.Theme;
+import pub.godweer.util.render.Render2D;
+import pub.godweer.util.render.Render2DUtil;
+import pub.godweer.util.render.font.Fonts;
 
 /**
  * Custom hotbar in HUD style: one solid panel, bars inside, animated selection.
@@ -39,7 +39,7 @@ public final class HotbarHud implements IMinecraft {
     private static final float ROW_GAP_1 = 5.0F;
     private static final float ROW_GAP_2 = 6.0F;
 
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     private float smoothHp = -1.0F;
     private float smoothAbs;
@@ -66,15 +66,7 @@ public final class HotbarHud implements IMinecraft {
     }
 
     public static boolean shouldReplace() {
-        if (!INSTANCE.enabled) return false;
-        if (mc.player == null || mc.level == null || mc.gui == null) return false;
-        if (mc.player.isSpectator()) return false;
-        if (mc.player.getVehicle() != null) return false;
-        try {
-            if (mc.gui.hud.isHidden()) return false;
-        } catch (Exception ignored) {
-        }
-        return true;
+        return false;
     }
 
     @EventTarget
@@ -107,7 +99,7 @@ public final class HotbarHud implements IMinecraft {
         float expY = hpY - ROW_GAP_1 - EXP_ROW;
         float offX = rowX + BAR_W + OFF_GAP;
 
-        Render2D.drawBlur(panelX, panelTop, panelW, panelH, RADIUS, BG, 1.0F);
+        Render2D.drawRoundedRect(panelX, panelTop, panelW, panelH, RADIUS, BG);
 
         int selected;
         try {
@@ -135,7 +127,7 @@ public final class HotbarHud implements IMinecraft {
         int accent = Theme.getAccentColor();
         float glowPad = 2.5F;
         Render2D.drawRoundedRect(smoothSelX - glowPad, slotY - glowPad, SLOT + glowPad * 2.0F, SLOT + glowPad * 2.0F,
-                8.0F, ColorUtil.withAlpha(accent, 55));
+                8.0F, HudStyle.ROW_BG_ACTIVE);
 
         for (int i = 0; i < 9; i++) {
             ItemStack stack = ItemStack.EMPTY;
@@ -333,12 +325,10 @@ public final class HotbarHud implements IMinecraft {
     }
 
     private static int hpColor(float pct) {
-        float t = Math.max(0.0F, Math.min(1.0F, pct));
-        int red = ColorUtil.rgba(255, 85, 75, 255);
-        int yellow = ColorUtil.rgba(255, 200, 70, 255);
-        int green = ColorUtil.rgba(95, 225, 125, 255);
-        if (t < 0.5F) return ColorUtil.lerp(red, yellow, t * 2.0F);
-        return ColorUtil.lerp(yellow, green, (t - 0.5F) * 2.0F);
+        // Three flat colors instead of a continuous red -> yellow -> green blend.
+        if (pct >= 0.6F) return ColorUtil.rgba(95, 225, 125, 255);
+        if (pct >= 0.3F) return ColorUtil.rgba(255, 200, 70, 255);
+        return ColorUtil.rgba(255, 85, 75, 255);
     }
 
     private boolean drawAir(Player player, float rowX, float rowW, float panelTop) {

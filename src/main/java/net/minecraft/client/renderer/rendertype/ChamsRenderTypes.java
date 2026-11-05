@@ -1,32 +1,39 @@
 package net.minecraft.client.renderer.rendertype;
 
-import pub.godweer.auxiliary.render.pipline.PiplinePost;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import pub.godweer.util.render.pipeline.PiplinePost;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * GodWeer chams RenderTypes. Lives in the vanilla package to access
  * the package-private RenderType.create.
  *
- * Each mode has a depth-tested pass and a depth-ignoring "through walls"
- * twin (same fragment shader, ALWAYS_PASS depth compare).
+ * Every style in {@link PiplinePost#CHAMS_STYLES} has a depth-tested pass and
+ * a depth-ignoring "through walls" twin (same fragment shader, ALWAYS_PASS
+ * depth compare). Types are built on first use: the pipelines themselves are
+ * already registered by the time anything asks for a RenderType.
  */
 public final class ChamsRenderTypes {
-    public static final RenderType CHAMS_GLASS = RenderType.create("godweer_chams_glass",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_GLASS).createRenderSetup());
 
-    public static final RenderType CHAMS_GLASS_THROUGH = RenderType.create("godweer_chams_glass_through",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_GLASS_THROUGH).createRenderSetup());
+    private static final Map<String, RenderType> TYPES = new ConcurrentHashMap<>();
 
-    public static final RenderType CHAMS_GLOW = RenderType.create("godweer_chams_glow",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_GLOW).createRenderSetup());
-
-    public static final RenderType CHAMS_GLOW_THROUGH = RenderType.create("godweer_chams_glow_through",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_GLOW_THROUGH).createRenderSetup());
-
-    public static final RenderType CHAMS_PLASMA = RenderType.create("godweer_chams_plasma",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_PLASMA).createRenderSetup());
-
-    public static final RenderType CHAMS_PLASMA_THROUGH = RenderType.create("godweer_chams_plasma_through",
-            RenderSetup.builder(PiplinePost.CHAMS_ENTITY_PLASMA_THROUGH).createRenderSetup());
+    public static RenderType of(String style, boolean through) {
+        return TYPES.computeIfAbsent(style + (through ? "|through" : "|normal"), key -> {
+            PiplinePost.ChamsPasses passes = PiplinePost.CHAMS_ENTITY.get(style);
+            if (passes == null) {
+                throw new IllegalArgumentException("unknown chams style: " + style);
+            }
+            RenderPipeline pipeline = through ? passes.through() : passes.normal();
+            // Any render type whose pipeline blends is routed to the OIT pass when
+            // Transparency is on "shader", and that pass throws for pipelines with no
+            // OIT set. Forcing the solid model phase keeps the classic blended draw —
+            // the same escape vanilla uses for wolf_armor_cracks.
+            return RenderType.create("godweer_chams_" + style + (through ? "_through" : ""),
+                    RenderSetup.builder(pipeline).withForcedSolidModelPhase().createRenderSetup());
+        });
+    }
 
     private ChamsRenderTypes() {
     }
