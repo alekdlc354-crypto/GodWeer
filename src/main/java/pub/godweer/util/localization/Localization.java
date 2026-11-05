@@ -31,6 +31,9 @@ public final class Localization {
         RU_DICT.put("Render", "Визуалы");
         RU_DICT.put("Player", "Игрок");
         RU_DICT.put("Target", "Цель");
+        RU_DICT.put("Target Style", "Стиль цели");
+        RU_DICT.put("Default", "Обычный");
+        RU_DICT.put("Wave", "Волна");
         RU_DICT.put("Misc", "Разное");
         RU_DICT.put("Single Player", "Одиночная игра");
         RU_DICT.put("Multi Player", "Сетевая игра");
@@ -203,7 +206,6 @@ public final class Localization {
         RU_DICT.put("Instant", "Мгновенная");
         RU_DICT.put("Legit", "Легит");
         RU_DICT.put("Packet", "Пакетный");
-        RU_DICT.put("Default", "Обычный");
         RU_DICT.put("Limit", "Лимит");
 
         RU_DICT.put("Custom Fog", "Кастомный туман");

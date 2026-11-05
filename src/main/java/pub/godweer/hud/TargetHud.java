@@ -9,6 +9,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import pub.godweer.IMinecraft;
 import pub.godweer.event.list.Render2DEvent;
 import pub.godweer.module.impl.combat.Aura;
+import pub.godweer.module.impl.render.Interface;
 import pub.godweer.util.render.Render2D;
 import pub.godweer.util.render.Render2DUtil;
 import pub.godweer.util.render.font.Fonts;
@@ -20,16 +21,16 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Target HUD: карточка цели с головой, ником, полосой здоровья с догоняющим
- * следом урона, золотой полосой поглощения и строкой предметов над плашкой.
+ * Target HUD с двумя раскладками: {@code Default} — карточка с головой, ником,
+ * полосой здоровья и золотой полосой поглощения; {@code Wave} — компактная
+ * плашка с сердчишками и дистанцией. Стиль переключается в модуле Interface.
  * <p>
  * Цель берётся у {@link Aura}, иначе — с прицела. Когда цель пропадает, плашка
  * доигрывает затухание на последней цели, а цвет темы берётся из кэша: иначе
  * при закрытии он успевает дёрнуться.
  * <p>
- * Всё время считается по {@link System#nanoTime()}, поэтому анимации и физика
- * частиц не зависят от FPS. Предметы собираются в заранее созданные массивы —
- * ни одного нового списка за кадр.
+ * Время считается по {@link System#nanoTime()}, поэтому анимации и физика
+ * частиц не зависят от FPS. Массивы под предметы созданы заранее.
  */
 public final class TargetHud extends HudElement implements IMinecraft {
 
@@ -51,12 +52,22 @@ public final class TargetHud extends HudElement implements IMinecraft {
     private static final float ITEM = 8.0F;
     private static final float ITEM_GAP = 1.5F;
 
+    // Wave: компактная плашка.
+    private static final float WAVE_W = 110.0F;
+    private static final float WAVE_H = 42.0F;
+    private static final float WAVE_HEAD = 20.0F;
+    private static final float WAVE_NAME = 7.2F;
+    private static final float WAVE_META = 6.2F;
+    private static final float HEARTS = 10.0F;
+    private static final float HEART_H = 7.0F;
+
     private static final int GOLD = ColorUtil.rgba(255, 202, 74, 255);
     private static final int HP_GOOD = ColorUtil.rgba(120, 226, 128, 255);
     private static final int HP_MID = ColorUtil.rgba(250, 206, 74, 255);
     private static final int HP_BAD = ColorUtil.rgba(238, 78, 78, 255);
     private static final int HURT_TINT = 0xFFFF6B6B;
     private static final int HURT_OVERLAY = ColorUtil.rgba(255, 74, 74, 255);
+    private static final int HEART_SHADOW = ColorUtil.rgba(0, 0, 0, 120);
 
     private static final int MAX_PARTICLES = 14;
 
@@ -85,6 +96,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
     private float open;
     private float hurtPulse;
     private float widthAnim = -1.0F;
+    private float heightAnim = -1.0F;
 
     private float hpValue;
     private float hpBar;
@@ -99,10 +111,15 @@ public final class TargetHud extends HudElement implements IMinecraft {
     private int cachedAccent = GOLD;
 
     public TargetHud() {
-        super("target", "Target", 168.0F, 176.0F, 150.0F, 36.0F);
+        super("target", "Target", 168.0F, 176.0F, 148.0F, 36.0F);
     }
 
     // ------------------------------------------------------------------ цель
+
+    private static boolean waveStyle() {
+        Interface ui = Interface.INSTANCE;
+        return ui != null && ui.targetStyle.is("Wave");
+    }
 
     private LivingEntity resolve() {
         if (mc.hitResult instanceof EntityHitResult hit
@@ -163,6 +180,37 @@ public final class TargetHud extends HudElement implements IMinecraft {
 
         animate(dt, liveTarget != null, hp, maxHp, abs, target);
 
+        boolean wave = waveStyle();
+        String name = nameOf(target);
+        String hpText = String.format(Locale.ROOT, "%.1f", hpValue);
+        String absText = absValue > 0.05F
+                ? String.format(Locale.ROOT, " (+%.1f)", absValue)
+                : "";
+
+        float hpW = Fonts.SF_MEDIUM.getWidth(hpText, wave ? WAVE_META : HP_SIZE)
+                + Fonts.SF_MEDIUM.getWidth(absText, SMALL_SIZE);
+
+        float targetW;
+        float targetH;
+        if (wave) {
+            targetW = Math.max(WAVE_W, PAD * 2.0F + WAVE_HEAD + 6.0F
+                    + Fonts.SF_MEDIUM.getWidth(name, WAVE_NAME) * 0.55F);
+            targetH = WAVE_H;
+        } else {
+            float rightW = Math.max(MIN_W - PAD * 2.0F - HEAD - GAP,
+                    hpW + Fonts.SF_MEDIUM.getWidth(name, NAME_SIZE) * 0.6F);
+            targetW = PAD * 2.0F + HEAD + GAP + rightW;
+            targetH = PAD * 2.0F + HEAD;
+        }
+
+        if (widthAnim < 0.0F) widthAnim = targetW;
+        if (heightAnim < 0.0F) heightAnim = targetH;
+        widthAnim += (targetW - widthAnim) * (1.0F - (float) Math.exp(-12.0F * dt));
+        heightAnim += (targetH - heightAnim) * (1.0F - (float) Math.exp(-12.0F * dt));
+
+        this.width = widthAnim;
+        this.height = heightAnim;
+
         float easedOpen = easeOutBack(open);
         float alpha = appear * Mth.clamp(open * 1.6F, 0.0F, 1.0F);
         if (alpha <= 0.01F) {
@@ -171,24 +219,6 @@ public final class TargetHud extends HudElement implements IMinecraft {
             return;
         }
 
-        // ---------------------------------------------------------- размеры
-        String name = nameOf(target);
-        String hpText = String.format(Locale.ROOT, "%.1f", hpValue);
-        String absText = absValue > 0.05F
-                ? String.format(Locale.ROOT, " (+%.1f)", absValue)
-                : "";
-        float hpW = Fonts.SF_MEDIUM.getWidth(hpText, HP_SIZE)
-                + Fonts.SF_MEDIUM.getWidth(absText, SMALL_SIZE);
-        float rightW = Math.max(MIN_W - PAD * 2.0F - HEAD - GAP, hpW + Fonts.SF_MEDIUM.getWidth(name, NAME_SIZE) * 0.6F);
-        float targetW = PAD * 2.0F + HEAD + GAP + rightW;
-
-        if (widthAnim < 0.0F) widthAnim = targetW;
-        widthAnim += (targetW - widthAnim) * (1.0F - (float) Math.exp(-12.0F * dt));
-
-        this.width = widthAnim;
-        this.height = PAD * 2.0F + HEAD;
-
-        // ---------------------------------------------------------- геометрия
         float cx = x + width / 2.0F;
         float cy = y + height / 2.0F;
         float sx = cx - (width / 2.0F) * easedOpen;
@@ -204,15 +234,31 @@ public final class TargetHud extends HudElement implements IMinecraft {
                     ColorUtil.withAlpha(HURT_OVERLAY, Math.round(150.0F * hurtPulse * alpha)));
         }
 
-        drawHead(target, sx + PAD, sy + (sh - HEAD) / 2.0F, alpha);
+        if (wave) {
+            drawWaveBody(target, name, hpText, absText, sx, sy, sw, sh, alpha);
+        } else {
+            drawDefaultBody(target, name, hpText, absText, sx, sy, sw, sh, alpha);
+        }
+
+        drawSparks(dt, sx + PAD + (wave ? WAVE_HEAD : HEAD) * 0.5F,
+                sy + (wave ? WAVE_HEAD * 0.5F + PAD : sh * 0.5F), alpha);
+    }
+
+    // ------------------------------------------------------------------ раскладки
+
+    private void drawDefaultBody(LivingEntity target, String name, String hpText, String absText,
+                                 float sx, float sy, float sw, float sh, float alpha) {
+        drawHead(target, sx + PAD, sy + (sh - HEAD) / 2.0F, HEAD, alpha);
 
         float rx = sx + PAD + HEAD + GAP;
         float rightEdge = sx + sw - PAD;
         float avail = Math.max(28.0F, rightEdge - rx);
 
-        // Ник с плавным уходом в прозрачность на длинном тексте.
-        float nameRoom = Math.max(20.0F, avail - hpW - 6.0F);
-        drawFadingText(name, rx, sy + 5.5F, NAME_SIZE, nameRoom,
+        float hpW = Fonts.SF_MEDIUM.getWidth(hpText, HP_SIZE)
+                + Fonts.SF_MEDIUM.getWidth(absText, SMALL_SIZE);
+
+        // Ник уходит в прозрачность, если не влезает целиком.
+        drawFadingText(name, rx, sy + 5.5F, NAME_SIZE, Math.max(20.0F, avail - hpW - 6.0F),
                 ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, alpha));
 
         Fonts.drawString(Fonts.SF_MEDIUM, hpText, rightEdge - hpW, sy + 6.0F, HP_SIZE,
@@ -223,11 +269,10 @@ public final class TargetHud extends HudElement implements IMinecraft {
                     sy + 7.0F, SMALL_SIZE, ColorUtil.multiplyAlpha(GOLD, alpha));
         }
 
-        // ---------------------------------------------------------- полосы
         float barW = avail;
         float barY = sy + sh - PAD - ABS_H - 4.5F - BAR_H;
+        int fill = healthColor(Mth.clamp(hpBar, 0.0F, 1.0F));
 
-        int fill = healthColor(smoothFrac(hpBar));
         Render2D.drawRoundedRect(rx, barY, barW, BAR_H, BAR_H / 2.0F,
                 ColorUtil.multiplyAlpha(HudStyle.BAR_TRACK, alpha));
         float trailW = barW * Mth.clamp(hpTrail, 0.0F, 1.0F);
@@ -256,8 +301,70 @@ public final class TargetHud extends HudElement implements IMinecraft {
                         ColorUtil.multiplyAlpha(GOLD, alpha));
             }
         }
+    }
 
-        drawSparks(dt, sx + PAD + HEAD * 0.5F, sy + PAD + HEAD * 0.5F, alpha);
+    private void drawWaveBody(LivingEntity target, String name, String hpText, String absText,
+                              float sx, float sy, float sw, float sh, float alpha) {
+        float hx = sx + PAD;
+        float hy = sy + PAD;
+        drawHead(target, hx, hy, WAVE_HEAD, alpha);
+
+        float rx = hx + WAVE_HEAD + 6.0F;
+        float rightEdge = sx + sw - PAD;
+        float avail = Math.max(20.0F, rightEdge - rx);
+
+        drawFadingText(name, rx, hy + 0.5F, WAVE_NAME, avail,
+                ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, alpha));
+
+        String meta = "HP: " + hpText;
+        String dist = mc.player == null ? "" : "Dist: " + Math.round(mc.player.distanceTo(target));
+        Fonts.drawString(Fonts.SF_MEDIUM, meta, rx, hy + 10.5F, WAVE_META,
+                ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, alpha));
+        float metaW = Fonts.SF_MEDIUM.getWidth(meta, WAVE_META);
+        if (!dist.isEmpty()) {
+            String tail = " | " + dist;
+            Fonts.drawString(Fonts.SF_MEDIUM, tail, rx + metaW, hy + 10.5F, WAVE_META,
+                    ColorUtil.multiplyAlpha(HudStyle.TEXT_DIM, alpha));
+        }
+        if (!absText.isEmpty()) {
+            Fonts.drawString(Fonts.SF_MEDIUM, absText.trim(), rightEdge
+                            - Fonts.SF_MEDIUM.getWidth(absText.trim(), SMALL_SIZE),
+                    hy + 10.5F, SMALL_SIZE, ColorUtil.multiplyAlpha(GOLD, alpha));
+        }
+
+        drawHearts(sx + PAD, sy + sh - PAD - HEART_H, sw - PAD * 2.0F, alpha);
+    }
+
+    /** Десять сердечек: целая часть — полная, дробная — подрезанная по ширине. */
+    private void drawHearts(float hx, float hy, float hw, float alpha) {
+        float gap = 1.5F;
+        float size = Math.max(5.0F, (hw - gap * (HEARTS - 1.0F)) / HEARTS);
+        float frac = Mth.clamp(hpBar, 0.0F, 1.0F) * HEARTS;
+
+        int color = healthColor(Mth.clamp(hpBar, 0.0F, 1.0F));
+        int track = ColorUtil.multiplyAlpha(HudStyle.BAR_TRACK, alpha);
+        int shadow = ColorUtil.multiplyAlpha(HEART_SHADOW, alpha);
+
+        for (int i = 0; i < (int) HEARTS; i++) {
+            float hxPos = hx + i * (size + gap);
+            heartShape(hxPos, hy + 0.9F, size, HEART_H - 0.9F, shadow);
+            heartShape(hxPos, hy, size, HEART_H, track);
+
+            float part = Mth.clamp(frac - i, 0.0F, 1.0F);
+            if (part > 0.02F) {
+                Render2D.pushScissor(hxPos - 0.5F, hy - 1.0F, (size + 1.0F) * part, HEART_H + 2.0F);
+                heartShape(hxPos, hy, size, HEART_H, ColorUtil.multiplyAlpha(color, alpha));
+                Render2D.popScissor();
+            }
+        }
+    }
+
+    private static void heartShape(float x, float y, float w, float h, int color) {
+        float r = w * 0.27F;
+        Render2D.drawCircle(x + w * 0.28F, y + h * 0.32F, r, color);
+        Render2D.drawCircle(x + w * 0.72F, y + h * 0.32F, r, color);
+        Render2D.drawRoundedRect(x + w * 0.06F, y + h * 0.30F, w * 0.88F, h * 0.46F, w * 0.22F, color);
+        Render2D.drawCircle(x + w * 0.5F, y + h * 0.68F, w * 0.24F, color);
     }
 
     // ------------------------------------------------------------------ анимации
@@ -288,8 +395,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
             absTrail = absFrac;
         }
 
-        int hurt = Math.max(0, target.hurtTime);
-        hpPulse(dt, live, hurt);
+        hpPulse(dt, live, Math.max(0, target.hurtTime));
     }
 
     /** hurtTime растёт на кадр удара: именно по приросту и пускаем искры. */
@@ -313,10 +419,6 @@ public final class TargetHud extends HudElement implements IMinecraft {
         return 1.0F + c3 * t * t * t + c1 * t * t;
     }
 
-    private static float smoothFrac(float value) {
-        return Mth.clamp(value, 0.0F, 1.0F);
-    }
-
     private static int healthColor(float frac) {
         if (frac > 0.5F) {
             return ColorUtil.lerp(HP_MID, HP_GOOD, (frac - 0.5F) * 2.0F);
@@ -324,35 +426,37 @@ public final class TargetHud extends HudElement implements IMinecraft {
         return ColorUtil.lerp(HP_BAD, HP_MID, frac * 2.0F);
     }
 
-    // ------------------------------------------------------------------ части
+    // ------------------------------------------------------------------ голова
 
-    private void drawHead(LivingEntity target, float hx, float hy, float alpha) {
+    private void drawHead(LivingEntity target, float hx, float hy, float size, float alpha) {
         int tint = ColorUtil.lerp(0xFFFFFFFF, HURT_TINT, hurtPulse);
         tint = ColorUtil.multiplyAlpha(tint, alpha);
         boolean drawn = false;
 
         if (target instanceof AbstractClientPlayer player) {
             try {
-                Render2D.drawHead(player.getSkin().body().texturePath(), hx, hy, HEAD, HEAD_R, tint);
+                Render2D.drawHead(player.getSkin().body().texturePath(), hx, hy, size, HEAD_R, tint);
                 drawn = true;
             } catch (Exception ignored) {
                 drawn = false;
             }
         }
         if (!drawn) {
-            Render2D.drawRoundedRect(hx, hy, HEAD, HEAD, HEAD_R,
+            Render2D.drawRoundedRect(hx, hy, size, size, HEAD_R,
                     ColorUtil.multiplyAlpha(ColorUtil.rgba(255, 255, 255, 20), alpha));
             Fonts.drawCenteredString(Fonts.SF_MEDIUM, "?",
-                    hx + HEAD / 2.0F, hy + HEAD / 2.0F - 4.5F, 12.0F,
+                    hx + size / 2.0F, hy + size / 2.0F - 4.5F, size * 0.46F,
                     ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, alpha));
         }
-        Render2D.drawRoundedOutline(hx, hy, HEAD, HEAD, HEAD_R, 1.0F,
+        Render2D.drawRoundedOutline(hx, hy, size, size, HEAD_R, 1.0F,
                 ColorUtil.multiplyAlpha(HudStyle.PANEL_EDGE, alpha));
         if (hurtPulse > 0.02F) {
-            Render2D.drawRoundedRect(hx, hy, HEAD, HEAD, HEAD_R,
+            Render2D.drawRoundedRect(hx, hy, size, size, HEAD_R,
                     ColorUtil.multiplyAlpha(HURT_OVERLAY, Math.round(hurtPulse * 105.0F * alpha)));
         }
     }
+
+    // ------------------------------------------------------------------ предметы
 
     /** Броня, главная и вторая рука — в половину слота, над правым краем плашки. */
     private void drawItems(Render2DEvent event, LivingEntity target, float rightEdge, float top, float alpha) {
@@ -392,7 +496,6 @@ public final class TargetHud extends HudElement implements IMinecraft {
                 } finally {
                     pose.popMatrix();
                 }
-                displayItems[i] = ItemStack.EMPTY;
             }
             Render2DUtil.flush();
         }
@@ -471,7 +574,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
 
     /**
      * Ник с уходом в прозрачность: строка рисуется посимвольно, и последняя
-     * четверть доступной ширины гаснет. Так длинный ник не обрывается многоточием.
+     * часть доступной ширины гаснет. Так длинный ник не обрывается многоточием.
      */
     private static void drawFadingText(String text, float x, float y, float size, float maxWidth, int color) {
         if (text == null || text.isEmpty()) return;
@@ -491,8 +594,8 @@ public final class TargetHud extends HudElement implements IMinecraft {
             if (pen > fadeStart) {
                 k = 1.0F - (pen - fadeStart) / Math.max(1.0F, maxWidth - fadeStart);
             }
-            int alpha = Math.round(ColorUtil.alpha(color) * Mth.clamp(k, 0.0F, 1.0F));
-            Fonts.drawString(Fonts.SF_MEDIUM, ch, x + pen, y, size, ColorUtil.withAlpha(color, alpha));
+            int a = Math.round(ColorUtil.alpha(color) * Mth.clamp(k, 0.0F, 1.0F));
+            Fonts.drawString(Fonts.SF_MEDIUM, ch, x + pen, y, size, ColorUtil.withAlpha(color, a));
             pen += chW;
         }
     }
@@ -501,5 +604,4 @@ public final class TargetHud extends HudElement implements IMinecraft {
         if (target instanceof AbstractClientPlayer player) return player.getGameProfile().name();
         return target.getName().getString();
     }
-
 }

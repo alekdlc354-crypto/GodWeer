@@ -6,6 +6,7 @@ import pub.godweer.hud.HudElement;
 import pub.godweer.hud.HudManager;
 import pub.godweer.module.Category;
 import pub.godweer.module.Module;
+import pub.godweer.module.settings.impl.ModeSetting;
 import pub.godweer.module.settings.impl.MultiModeSetting;
 
 import java.util.List;
@@ -15,6 +16,11 @@ import java.util.List;
  */
 public final class Interface extends Module {
 
+    public static Interface INSTANCE;
+
+    /** Раскладка Target HUD: карточка или компактная плашка с сердцами. */
+    public final ModeSetting targetStyle = mode("Target Style", "Default", "Default", "Wave");
+
     public final MultiModeSetting elements = multiMode(
             "Elements",
             List.of("Watermark", "Target", "Potions", "Staff", "Hotkeys", "Music", "CoolDowns"),
@@ -23,6 +29,7 @@ public final class Interface extends Module {
 
     public Interface() {
         super("Interface", "Интерфейс", Category.RENDER);
+        INSTANCE = this;
     }
 
     @Override
