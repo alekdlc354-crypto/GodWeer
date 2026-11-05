@@ -21,6 +21,12 @@ JAVA_HOME=<jdk-25> ./gradlew build
 - `pub/godweer/util/render/` — `Render2D`, MSDF-шрифты, иконочный атлас (`IconUse`).
 - `pub/godweer/ui/` — ClickGUI, модалки, оверлеи.
 
+## HUD и шейдеры рук
+
+Элементы HUD включаются в модуле Interface. У Target два стиля: `Default` — карточка с головой, полосой здоровья, следом урона и золотой полосой поглощения; `Wave` — компактная плашка с десятью сердцами и дистанцией.
+
+Заливка рук (модуль ShaderHands) — пять 2D-эффектов: `Mesh`, `Silk`, `Rings`, `Halftone`, `Embers`. Шейдеры лежат в `assets/godweer/shaders/post/hands/hand_*.fsh`, раскладка uniform'ов общая — `PiplinePost.handFillPipeline`.
+
 ## Замечания
 
 - Токены Spotify/Yandex для Music-модуля не в репозитории: они хранятся в `~/femboy/music.json`.
