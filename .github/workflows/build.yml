@@ -2,11 +2,11 @@ name: Build Mod
 
 on:
   push:
-    branches: [ main, 'arena/**' ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -48,3 +48,22 @@ jobs:
             build/libs/*.jar
             !build/libs/*-sources.jar
           if-no-files-found: error
+
+      # Готовый .jar выкладывается релизом: ссылка открывается без логина
+      # и не требует лезть в артефакты Actions.
+      - name: Publish release with JAR
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jar=$(ls build/libs/*.jar | grep -v -- '-sources' | head -n1)
+          echo "publishing $jar"
+          gh release create "build-${GITHUB_RUN_NUMBER}" "$jar" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Phone-Sosiski — сборка ${GITHUB_RUN_NUMBER}" \
+            --notes "Автосборка мода. Ветка: \`${GITHUB_REF_NAME}\`, коммит: \`${GITHUB_SHA}\`.
+
+          Как поставить:
+          1. Скачать \`$(basename "$jar")\` из Assets ниже.
+          2. Положить в папку \`mods\` вашего Minecraft 26.3 (Fabric Loader 0.19.5+, Fabric API 0.163.0+26.3)." \
+            --latest=false
