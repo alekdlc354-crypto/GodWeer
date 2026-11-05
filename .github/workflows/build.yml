@@ -52,9 +52,10 @@ jobs:
           if-no-files-found: error
 
       # Готовый .jar выкладывается релизом: ссылка открывается без логина
-      # и не требует лезть в артефакты Actions.
+      # и не требует лезть в артефакты Actions. Только из main, чтобы
+      # рабочие ветки не плодили релизы.
       - name: Publish release with JAR
-        if: success()
+        if: success() && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -68,4 +69,4 @@ jobs:
           Как поставить:
           1. Скачать \`$(basename "$jar")\` из Assets ниже.
           2. Положить в папку \`mods\` вашего Minecraft 26.3 (Fabric Loader 0.19.5+, Fabric API 0.163.0+26.3)." \
-            --latest=false
+            --prerelease
