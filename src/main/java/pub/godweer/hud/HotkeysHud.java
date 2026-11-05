@@ -165,7 +165,8 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
         this.height = animatedH;
 
         float cy = y;
-        HudStyle.drawPill(x, cy, headerW);
+        // Общая ширина: шапка и строки выравниваются по правому краю.
+        HudStyle.drawPill(x, cy, animatedW);
         HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
                 IconUse.KEYBOARD, title, NAME, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
         cy += HudStyle.PILL_H + ROW_GAP;
@@ -173,7 +174,7 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
         for (BindRow r : sorted) {
             float a = r.anim;
             if (a <= 0.03F) continue;
-            float rowW = rowWidth(r);
+            float rowW = animatedW;
             float slide = (1.0F - a) * -6.0F;
             float pillX = x + slide;
             float midY = cy + HudStyle.PILL_H / 2.0F;

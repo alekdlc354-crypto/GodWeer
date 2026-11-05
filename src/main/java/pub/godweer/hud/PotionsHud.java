@@ -32,7 +32,7 @@ public final class PotionsHud extends HudElement implements IMinecraft {
 
     private static final float ROW_GAP = 3.0F;
     private static final float TEXT = 7.5F;
-    private static final float FX_ICON = 9.0F;
+    private static final float FX_ICON = 10.0F;
 
     private static final int HARM_COLOR = ColorUtil.rgba(255, 84, 92, 255);
 
@@ -180,7 +180,9 @@ public final class PotionsHud extends HudElement implements IMinecraft {
         this.height = animatedH;
 
         float cy = y;
-        HudStyle.drawPill(x, cy, headerW);
+        // Шапка и строки живут в одной ширине: правый край ровный, иконки стоят
+        // в столбик, а не вразнобой.
+        HudStyle.drawPill(x, cy, animatedW);
         HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
                 IconUse.POTION, title, TEXT, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
         cy += HudStyle.PILL_H + ROW_GAP;
@@ -191,7 +193,7 @@ public final class PotionsHud extends HudElement implements IMinecraft {
         for (EffectRow r : sorted) {
             float a = r.anim;
             if (a <= 0.03F) continue;
-            float rowW = rowWidth(r);
+            float rowW = animatedW;
             float slide = (1.0F - a) * -6.0F;
             float pillX = x + slide;
             float midY = cy + HudStyle.PILL_H / 2.0F;
@@ -233,8 +235,10 @@ public final class PotionsHud extends HudElement implements IMinecraft {
                 if (extractor != null) {
                     Render2DUtil.flush();
                     extractor.pose().pushMatrix();
-                    extractor.pose().translate(iconLeft, iconY);
-                    float sc = FX_ICON / 18.0F * (0.85F + 0.15F * a);
+                    extractor.pose().translate(iconLeft + 0.5F, iconY + 0.5F);
+                    // 18x18 текстура сидит внутри 10 px с полем по 0.5 px, иначе
+                    // край иконки упирается в скругление пилюли.
+                    float sc = (FX_ICON - 1.0F) / 18.0F * (0.85F + 0.15F * a);
                     extractor.pose().scale(sc, sc);
                     extractor.blit(r.icon, 0, 0, 18, 18, 0.0F, 1.0F, 0.0F, 1.0F);
                     extractor.pose().popMatrix();

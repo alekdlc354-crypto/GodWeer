@@ -104,12 +104,12 @@ public final class ShaderHandsRenderer {
 
     private static RenderPipeline pipelineFor(ShaderHands module) {
         return switch (module.getStyle()) {
-            case ShaderHands.PRISM -> PiplinePost.HAND_PRISM;
-            case ShaderHands.VOLTAGE -> PiplinePost.HAND_VOLTAGE;
-            case ShaderHands.VAPOR -> PiplinePost.HAND_VAPOR;
-            case ShaderHands.SOLAR -> PiplinePost.HAND_SOLAR;
-            // Неизвестный или устаревший стиль из конфига — хром.
-            default -> PiplinePost.HAND_CHROME;
+            case ShaderHands.SILK -> PiplinePost.HAND_SILK;
+            case ShaderHands.RINGS -> PiplinePost.HAND_RINGS;
+            case ShaderHands.HALFTONE -> PiplinePost.HAND_HALFTONE;
+            case ShaderHands.EMBERS -> PiplinePost.HAND_EMBERS;
+            // Неизвестный или устаревший стиль из конфига — сетка.
+            default -> PiplinePost.HAND_MESH;
         };
     }
 

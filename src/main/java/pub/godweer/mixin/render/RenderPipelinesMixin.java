@@ -32,11 +32,11 @@ public abstract class RenderPipelinesMixin {
         register(Pipelines.GUI_BLUR_UP);
         register(ParticleSpawn.pipeline());
         register(PiplinePost.HANDS_MASK);
-        register(PiplinePost.HAND_CHROME);
-        register(PiplinePost.HAND_PRISM);
-        register(PiplinePost.HAND_VOLTAGE);
-        register(PiplinePost.HAND_VAPOR);
-        register(PiplinePost.HAND_SOLAR);
+        register(PiplinePost.HAND_MESH);
+        register(PiplinePost.HAND_SILK);
+        register(PiplinePost.HAND_RINGS);
+        register(PiplinePost.HAND_HALFTONE);
+        register(PiplinePost.HAND_EMBERS);
         register(PiplinePost.WORLD_SKY_AURORA);
         register(PiplinePost.WORLD_SKY_CRIMSON);
         register(PiplinePost.WORLD_SKY_OCEAN);

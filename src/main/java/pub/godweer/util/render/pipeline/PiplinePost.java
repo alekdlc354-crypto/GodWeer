@@ -51,13 +51,13 @@ public class PiplinePost {
             .withCull(false)
             .build();
 
-    // Заливка рук: пять полностью новых эффектов вместо старых aurora/nebula/holo/
-    // caustics/ember/frost. Все пять используют одну раскладку uniform'ов.
-    public static final RenderPipeline HAND_CHROME = handFillPipeline("hand_chrome", "godweer:post/hands/hand_chrome");
-    public static final RenderPipeline HAND_PRISM = handFillPipeline("hand_prism", "godweer:post/hands/hand_prism");
-    public static final RenderPipeline HAND_VOLTAGE = handFillPipeline("hand_voltage", "godweer:post/hands/hand_voltage");
-    public static final RenderPipeline HAND_VAPOR = handFillPipeline("hand_vapor", "godweer:post/hands/hand_vapor");
-    public static final RenderPipeline HAND_SOLAR = handFillPipeline("hand_solar", "godweer:post/hands/hand_solar");
+    // Заливка рук: пять 2D-эффектов. Раскладка uniform'ов у всех одна, поэтому
+    // добавление стиля — это новый fsh плюс одна строка здесь.
+    public static final RenderPipeline HAND_MESH = handFillPipeline("hand_mesh", "godweer:post/hands/hand_mesh");
+    public static final RenderPipeline HAND_SILK = handFillPipeline("hand_silk", "godweer:post/hands/hand_silk");
+    public static final RenderPipeline HAND_RINGS = handFillPipeline("hand_rings", "godweer:post/hands/hand_rings");
+    public static final RenderPipeline HAND_HALFTONE = handFillPipeline("hand_halftone", "godweer:post/hands/hand_halftone");
+    public static final RenderPipeline HAND_EMBERS = handFillPipeline("hand_embers", "godweer:post/hands/hand_embers");
     public static final RenderPipeline HANDS_GLOW_MASK = handsGlowPipeline("hands_glow_mask", "godweer:post/hands/hands_glow_mask", GLOW_HANDS_MASK_LAYOUT, glowFloatTarget());
     public static final RenderPipeline HANDS_GLOW_BLUR = handsGlowPipeline("hands_glow_blur", "godweer:post/hands/hands_glow_blur", GLOW_HANDS_BLUR_LAYOUT, glowFloatTarget());
     public static final RenderPipeline HANDS_GLOW_COMPOSITE = handsGlowPipeline("hands_glow_composite", "godweer:post/hands/hands_glow_composite", GLOW_HANDS_COMPOSITE_LAYOUT, new ColorTargetState(BlendFunction.ADDITIVE));

@@ -30,6 +30,7 @@ public final class Localization {
         RU_DICT.put("Movement", "Движение");
         RU_DICT.put("Render", "Визуалы");
         RU_DICT.put("Player", "Игрок");
+        RU_DICT.put("Target", "Цель");
         RU_DICT.put("Misc", "Разное");
         RU_DICT.put("Single Player", "Одиночная игра");
         RU_DICT.put("Multi Player", "Сетевая игра");
@@ -270,11 +271,11 @@ public final class Localization {
         RU_DICT.put("Style", "Стиль");
         RU_DICT.put("Opacity", "Прозрачность");
         RU_DICT.put("Both Hands", "Обе руки");
-        RU_DICT.put("Chrome", "Хром");
-        RU_DICT.put("Prism", "Призма");
-        RU_DICT.put("Voltage", "Разряды");
-        RU_DICT.put("Vapor", "Дым");
-        RU_DICT.put("Solar", "Плазма");
+        RU_DICT.put("Mesh", "Сетка");
+        RU_DICT.put("Silk", "Шёлк");
+        RU_DICT.put("Rings", "Кольца");
+        RU_DICT.put("Halftone", "Полутон");
+        RU_DICT.put("Embers", "Искры");
     }
 
     public static String get(String text) {

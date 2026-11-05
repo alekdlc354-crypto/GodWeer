@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
  * Staff list HUD:
  * - Staff detection by tag only: the tab-list tag (or scoreboard team prefix)
  *   must contain one of STAFF_KEYWORDS; nicknames are never matched.
- * - The server tag itself is shown (vanilla font and its own colors), same as NameTags.
+ * - The server tag itself is shown with the server's own colours. Наш шрифт берёт
+ *   тег, если в нём есть все глифы, иначе строка уходит в ванильный фолбэк.
  * - Status: ACTIVE (online), NEAR (in loaded chunk range), SPEC (spectator), VANISH (hidden from tab).
  * - Spectator/playing badge instead of a status dot, smooth enter & exit row animations.
  */
@@ -46,6 +47,7 @@ public final class StaffHud extends HudElement implements IMinecraft {
     private static final float HEAD = 10.0F;
     private static final float RADIUS = 7.0F;
     private static final float TAG_SCALE = 0.72F;
+    private static final float TAG_SIZE = 6.6F;
 
     private static final Pattern VALID_NICK = Pattern.compile("^[a-zA-Z0-9_]{3,16}$");
 
@@ -455,7 +457,22 @@ public final class StaffHud extends HudElement implements IMinecraft {
         Render2D.popScissor();
     }
 
+    /** Тег в нашем шрифте, если он покрывает все его глифы. */
+    private static boolean tagFitsMsdf(ServerTags.Tag tag) {
+        for (ServerTags.TagRun run : tag.runs()) {
+            if (Fonts.SF_MEDIUM.shape(run.text()).missingGlyphs()) return false;
+        }
+        return true;
+    }
+
     private static float tagWidth(ServerTags.Tag tag) {
+        if (tagFitsMsdf(tag)) {
+            float w = 0.0F;
+            for (ServerTags.TagRun run : tag.runs()) {
+                w += Fonts.SF_MEDIUM.getWidth(run.text(), TAG_SIZE);
+            }
+            return w;
+        }
         float w = 0.0F;
         for (ServerTags.TagRun run : tag.runs()) {
             w += mc.font.width(run.text());
@@ -464,10 +481,23 @@ public final class StaffHud extends HudElement implements IMinecraft {
     }
 
     /**
-     * Тег рисуем ванильным шрифтом (юникод-фолбэк как в табе): small caps
-     * и прочие серверные глифы отсутствуют в нашем MSDF. Куски — своими цветами.
+     * Тег теми же буквами, что и остальной интерфейс; цвета кусков остаются
+     * серверные. Ванильный шрифт включается только когда в теге есть глифы,
+     * которых нет в нашем MSDF-атласе.
      */
     private static float drawRowTag(ServerTags.Tag tag, float cx, float midY, float alpha) {
+        if (tagFitsMsdf(tag)) {
+            float pen = cx;
+            float textY = midY - Fonts.SF_MEDIUM.textHeight(TAG_SIZE) / 2.0F + 0.35F;
+            for (ServerTags.TagRun run : tag.runs()) {
+                int color = run.color() != 0 ? run.color() : Theme.getAccentColor();
+                Fonts.drawString(Fonts.SF_MEDIUM, run.text(), pen, textY, TAG_SIZE,
+                        ColorUtil.multiplyAlpha(color, alpha));
+                pen += Fonts.SF_MEDIUM.getWidth(run.text(), TAG_SIZE);
+            }
+            return pen + 5.0F;
+        }
+
         var extractor = RenderExtend.currentGuiGraphicsExtractor();
         if (extractor == null) return cx;
 

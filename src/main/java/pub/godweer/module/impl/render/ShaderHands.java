@@ -10,33 +10,26 @@ import pub.godweer.util.style.Theme;
 import pub.godweer.util.render.world.ShaderHandsRenderer;
 
 /**
- * Шейдерная заливка рук от первого лица: маска рук из разницы глубины
- * заливается выбранным эффектом. Старые aurora/nebula/holo/caustics/ember/frost
- * удалены целиком — пять новых эффектов написаны с нуля и работают на полной
- * геометрии кисти (позиция и нормаль восстанавливаются из глубины), поэтому
- * рисунок лежит на руке, а не плавает по экрану.
+ * Заливка рук от первого лица: маска рук из разницы глубины закрашивается
+ * выбранным эффектом.
  * <p>
- * Новые эффекты — post-шейдеры в assets/godweer/shaders/post/hands:
- * <ul>
- *   <li>Chrome — жидкий металл с процедурной студией и анизотропной полировкой;</li>
- *   <li>Prism — тонкоплёночная интерференция с дисперсией по каналам;</li>
- *   <li>Voltage — электрические разряды по гребням доменно-искажённого fbm;</li>
- *   <li>Vapor — закрученный дым с доменным искажением и подсветкой кромки;</li>
- *   <li>Solar — плазма звезды на турбулентности в двух масштабах.</li>
- * </ul>
+ * Все пять эффектов — чистый 2D по экранным координатам: глубина и нормаль не
+ * восстанавливаются, узор строится из uv и времени. Старые наборы удалены.
+ * Файлы лежат в assets/godweer/shaders/post/hands: mesh, silk, rings, halftone,
+ * embers.
  */
 public final class ShaderHands extends Module {
 
-    public static final String CHROME = "Chrome";
-    public static final String PRISM = "Prism";
-    public static final String VOLTAGE = "Voltage";
-    public static final String VAPOR = "Vapor";
-    public static final String SOLAR = "Solar";
+    public static final String MESH = "Mesh";
+    public static final String SILK = "Silk";
+    public static final String RINGS = "Rings";
+    public static final String HALFTONE = "Halftone";
+    public static final String EMBERS = "Embers";
 
     public static ShaderHands INSTANCE;
 
     private final HeaderSetting main = header("Main");
-    private final ModeSetting style = mode("Style", CHROME, CHROME, PRISM, VOLTAGE, VAPOR, SOLAR);
+    private final ModeSetting style = mode("Style", MESH, MESH, SILK, RINGS, HALFTONE, EMBERS);
     private final SliderSetting speed = slider("Speed", 1.0f, 0.1f, 5.0f, 0.1f);
     private final SliderSetting opacity = slider("Opacity", 0.95f, 0.0f, 1.0f, 0.02f);
     private final CheckBox bothHands = checkbox("Both Hands", true);
@@ -44,7 +37,7 @@ public final class ShaderHands extends Module {
     private final ShaderHandsRenderer renderer = new ShaderHandsRenderer();
 
     public ShaderHands() {
-        super("ShaderHands", "Заливка рук: хром, призма, разряды, дым, плазма", Category.RENDER);
+        super("ShaderHands", "Заливка рук: сетка, шёлк, кольца, полутон, искры", Category.RENDER);
         INSTANCE = this;
     }
 
