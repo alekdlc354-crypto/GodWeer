@@ -26,10 +26,10 @@ import java.util.Locale;
  */
 public final class PlayerHud extends HudElement implements IMinecraft {
 
-    private static final float PAD = 7.0F;
-    private static final float HEAD = 30.0F;
+    private static final float PAD = 6.0F;
+    private static final float HEAD = 28.0F;
     private static final float HEAD_R = 6.0F;
-    private static final float RADIUS = 8.0F;
+    private static final float RADIUS = 6.5F;
     private static final float GAP = 7.0F;
 
     private static final float NAME_SIZE = 9.5F;
@@ -55,7 +55,8 @@ public final class PlayerHud extends HudElement implements IMinecraft {
     private float smoothAbs;
 
     public PlayerHud() {
-        super("player", "Player", 275.0F, 175.0F, 158.0F, 44.0F);
+        // Как на эталоне: карточка цели по центру снизу, над хотбаром.
+        super("player", "Player", 161.0F, 175.0F, 158.0F, 40.0F);
     }
 
     private LivingEntity resolve() {
@@ -214,13 +215,13 @@ public final class PlayerHud extends HudElement implements IMinecraft {
 
         Fonts.drawString(Fonts.SF_MEDIUM,
                 HudText.ellipsize(nick, Math.max(24.0F, avail - hpW - 8.0F), NAME_SIZE),
-                rx, cy + 6.0F, NAME_SIZE, HudStyle.TEXT_PRIMARY);
-        Fonts.drawString(Fonts.SF_MEDIUM, hpText, rightEdge - hpW, cy + 7.0F, HP_SIZE,
+                rx, cy + 5.5F, NAME_SIZE, HudStyle.TEXT_PRIMARY);
+        Fonts.drawString(Fonts.SF_MEDIUM, hpText, rightEdge - hpW, cy + 6.5F, HP_SIZE,
                 curAbs > 0.05F ? HudStyle.HP_ABSORB : HudStyle.HP_FILL);
 
         if (meta.length() > 0) {
             Fonts.drawString(Fonts.SF_MEDIUM, HudText.ellipsize(meta.toString(), avail, META_SIZE),
-                    rx, cy + 17.5F, META_SIZE, HudStyle.TEXT_SECONDARY);
+                    rx, cy + 15.5F, META_SIZE, HudStyle.TEXT_SECONDARY);
         }
 
         // ------------------------------------------------------------ полоски
@@ -229,7 +230,7 @@ public final class PlayerHud extends HudElement implements IMinecraft {
         float absFrac = Mth.clamp(smoothAbs / maxHp, 0.0F, 1.0F - hpFrac);
 
         // Полоски внизу: здоровье, под ним броня. Призрак урона — в той же полоске.
-        float barY = cy + height - 18.0F;
+        float barY = cy + height - 16.5F;
         HudStyle.drawBarWithGhost(rx, barY, avail, HP_BAR_H, hpFrac, ghostFrac, HudStyle.HP_FILL);
         if (absFrac > 0.005F) {
             float absW = avail * absFrac;
