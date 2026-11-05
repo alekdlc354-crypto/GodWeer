@@ -268,7 +268,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
         open = approach(open, targetAppear, 9.0F, dt);
 
         float hpFrac = Mth.clamp(hp / maxHp, 0.0F, 1.0F);
-        float absFrac = Mth.clamp(abs / maxHp, 0.0F, 1.0F - hpFrac);
+        float absFrac = Mth.clamp(abs / maxHp, 0.0F, 1.0F);
 
         hpValue = Mth.lerp(1.0F - (float) Math.exp(-9.0F * dt), hpValue, hp);
         hpBar = Mth.lerp(1.0F - (float) Math.exp(-16.0F * dt), hpBar, hpFrac);
@@ -382,14 +382,15 @@ public final class TargetHud extends HudElement implements IMinecraft {
             for (int i = 0; i < count; i++) {
                 ItemStack stack = displayItems[i];
                 if (stack.isEmpty()) continue;
+                var pose = extractor.pose();
+                pose.pushMatrix();
                 try {
-                    var pose = extractor.pose();
-                    pose.pushMatrix();
                     pose.translate(ix + i * (ITEM + ITEM_GAP), iy);
                     pose.scale(ITEM / 16.0F, ITEM / 16.0F);
                     extractor.item(stack, 0, 0);
-                    pose.popMatrix();
                 } catch (Exception ignored) {
+                } finally {
+                    pose.popMatrix();
                 }
                 displayItems[i] = ItemStack.EMPTY;
             }
