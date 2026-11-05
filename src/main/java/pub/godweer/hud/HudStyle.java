@@ -156,6 +156,21 @@ public final class HudStyle {
                 + Fonts.SF_MEDIUM.getWidth(text, size);
     }
 
+    /** Ширина `icon text` без разделителя — для шапок HUD. */
+    public static float plainSegmentWidth(IconUse icon, String text, float size) {
+        return Fonts.iconFittedWidth(icon, ICON) + 6.0F + Fonts.SF_MEDIUM.getWidth(text, size);
+    }
+
+    /** `icon text` без вертикальной черты между ними. */
+    public static float drawPlainSegment(float x, float cy, IconUse icon, String text, float size,
+                                         int iconColor, int textColor) {
+        Fonts.drawIconFitted(icon, x, cy, ICON, iconColor);
+        x += Fonts.iconFittedWidth(icon, ICON) + 6.0F;
+        Fonts.drawString(Fonts.SF_MEDIUM, text, x,
+                cy - Fonts.SF_MEDIUM.textHeight(size) / 2.0F + 0.35F, size, textColor);
+        return x + Fonts.SF_MEDIUM.getWidth(text, size);
+    }
+
     /** Draws `icon | text` at x, vertically centred on cy. Returns the x after it. */
     public static float drawSegment(float x, float cy, IconUse icon, String text, float size,
                                     int iconColor, int textColor) {
@@ -178,13 +193,8 @@ public final class HudStyle {
         float midY = y + labelH / 2.0F;
         float ty = midY - Fonts.SF_MEDIUM.textHeight(size) / 2.0F + 0.3F;
 
-        // Акцентная насечка слева: заголовок читается как заголовок, а не как
-        // ещё одна строка списка.
-        Render2D.drawRoundedRect(x + padX, midY - 4.0F, 2.0F, 8.0F, 1.0F,
-                ColorUtil.withAlpha(Theme.getAccentColor(), 230));
-
-        float textX = x + padX + 6.0F;
-        float titleW = w - padX * 2.0F - 6.0F;
+        float textX = x + padX;
+        float titleW = w - padX * 2.0F;
         if (rightIcon != null) titleW -= 15.0F;
         String shownTitle = HudText.ellipsize(title, Math.max(0.0F, titleW), size);
         Fonts.drawString(Fonts.SF_MEDIUM, shownTitle, textX, ty, size, TEXT_PRIMARY);

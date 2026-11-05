@@ -142,7 +142,7 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
 
         String title = "Hotkeys";
         float headerW = HudStyle.PILL_PAD * 2.0F
-                + HudStyle.segmentWidth(IconUse.KEYBOARD, title, NAME);
+                + HudStyle.plainSegmentWidth(IconUse.KEYBOARD, title, NAME);
 
         float maxW = headerW;
         int visible = 0;
@@ -167,7 +167,7 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
         float cy = y;
         // Общая ширина: шапка и строки выравниваются по правому краю.
         HudStyle.drawPill(x, cy, animatedW);
-        HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
+        HudStyle.drawPlainSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
                 IconUse.KEYBOARD, title, NAME, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
         cy += HudStyle.PILL_H + ROW_GAP;
 

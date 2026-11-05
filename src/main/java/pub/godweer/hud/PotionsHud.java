@@ -157,7 +157,7 @@ public final class PotionsHud extends HudElement implements IMinecraft {
 
         String title = "Active potions";
         float headerW = HudStyle.PILL_PAD * 2.0F
-                + HudStyle.segmentWidth(IconUse.POTION, title, TEXT);
+                + HudStyle.plainSegmentWidth(IconUse.POTION, title, TEXT);
 
         float maxW = headerW;
         int visible = 0;
@@ -183,7 +183,7 @@ public final class PotionsHud extends HudElement implements IMinecraft {
         // Шапка и строки живут в одной ширине: правый край ровный, иконки стоят
         // в столбик, а не вразнобой.
         HudStyle.drawPill(x, cy, animatedW);
-        HudStyle.drawSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
+        HudStyle.drawPlainSegment(x + HudStyle.PILL_PAD, cy + HudStyle.PILL_H / 2.0F,
                 IconUse.POTION, title, TEXT, HudStyle.TEXT_PRIMARY, HudStyle.TEXT_PRIMARY);
         cy += HudStyle.PILL_H + ROW_GAP;
 
