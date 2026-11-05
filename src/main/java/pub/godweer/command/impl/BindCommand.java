@@ -47,7 +47,7 @@ public class BindCommand extends Command {
         builder.executes(context -> {
             String prefix = getPrefix();
             ChatUtil.info("Назначение клавиши:");
-            ChatUtil.entry(prefix + "bind \"модуль\" \"клавиша\"", "Например: " + prefix + "bind KillAura R");
+            ChatUtil.entry(prefix + "bind \"модуль\" \"клавиша\"", "Например: " + prefix + "bind Aura R");
             ChatUtil.entry(prefix + "unbind \"клавиша\"", "Снять клавишу со всех модулей");
             ChatUtil.entry("Клавиши", "R, F1, SPACE, TAB, M1, NUM 5, NUMPAD0");
             return 1;

@@ -74,7 +74,10 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                         i1,
                         i2,
                         throughTint,
-                        null,
+                        // Без uvMapping у моделей терялись UV, и шейдерные узоры
+                        // (сетка wireframe, полосы glitch) считались от мусорных
+                        // координат — часть тела выходила прозрачной.
+                        uvMapping,
                         outline
                 );
             }

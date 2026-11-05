@@ -8,7 +8,7 @@ import pub.godweer.util.style.Theme;
 import pub.godweer.util.render.Render2D;
 import pub.godweer.util.render.font.Fonts;
 import pub.godweer.hud.Notifications;
-import pub.godweer.hud.ServerGui;
+import pub.godweer.hud.HudText;
 import pub.godweer.ui.clickgui.PanelRefractions;
 import pub.godweer.friend.FriendManager;
 
@@ -131,7 +131,7 @@ public class FriendsModal implements Modal {
                     ColorUtil.multiplyAlpha(hovered ? 0xFF1D2030 : 0xFF15171F, alpha));
 
             float removeX = innerX + innerW - BTN - 2.0F;
-            Fonts.drawString(Fonts.SF_MEDIUM, ServerGui.ellipsize(name, removeX - innerX - 14.0F, ModalShell.LABEL),
+            Fonts.drawString(Fonts.SF_MEDIUM, HudText.ellipsize(name, removeX - innerX - 14.0F, ModalShell.LABEL),
                     innerX + 10.0F, rowY + (ROW - Fonts.SF_MEDIUM.textHeight(ModalShell.LABEL)) / 2.0F + 0.35F,
                     ModalShell.LABEL, ColorUtil.multiplyAlpha(Theme.TEXT_MAIN, alpha));
 

@@ -74,10 +74,6 @@ public final class HotbarHud implements IMinecraft {
         if (!shouldReplace()) return;
         if (event.getGuiGraphicsExtractor() == null) return;
         drawHotbar(event);
-        if (ServerGui.isEnabled()) {
-            ServerGui.renderTabList();
-            ServerGui.renderSidebar();
-        }
     }
 
     private void drawHotbar(Render2DEvent event) {

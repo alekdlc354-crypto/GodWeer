@@ -3,6 +3,7 @@ package pub.godweer.hud;
 import pub.godweer.Client;
 import pub.godweer.IMinecraft;
 import pub.godweer.util.style.ColorUtil;
+import pub.godweer.util.style.Theme;
 import pub.godweer.util.render.Render2D;
 import pub.godweer.util.render.font.Fonts;
 import pub.godweer.util.render.font.IconUse;
@@ -28,18 +29,23 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
     private static final float ROW_GAP = 3.0F;
     private static final float NAME = 7.5F;
     private static final float KEY = 7.0F;
+    /** Высота иконки категории рядом с клавишей. */
+    private static final float CAT_ICON = 7.5F;
 
     private static final class BindRow {
         final String id;
         String name;
         String keyText;
+        /** Иконка раздела, к которому принадлежит модуль бинда. */
+        IconUse icon;
         float anim;
         boolean present;
 
-        BindRow(String id, String name, String keyText) {
+        BindRow(String id, String name, String keyText, IconUse icon) {
             this.id = id;
             this.name = name;
             this.keyText = keyText;
+            this.icon = icon;
             this.anim = 0.0F;
             this.present = true;
         }
@@ -67,13 +73,13 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
                 String keyStr = m.getBind().getDisplayValue();
                 if (keyStr == null || keyStr.equalsIgnoreCase("NONE") || keyStr.isEmpty()) continue;
 
-                upsert(m.getName().toLowerCase(Locale.ROOT), m.getName(), keyStr);
+                upsert(m.getName().toLowerCase(Locale.ROOT), m.getName(), keyStr, iconOf(m.getCategory()));
                 anyActive = true;
             }
         }
 
         if (!anyActive && HudManager.editMode()) {
-            upsert("speed", "Speed", "G");
+            upsert("speed", "Speed", "G", IconUse.MOVEMENT);
         }
 
         Iterator<Map.Entry<String, BindRow>> it = rows.entrySet().iterator();
@@ -86,15 +92,28 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
         }
     }
 
-    private void upsert(String id, String name, String keyText) {
+    private void upsert(String id, String name, String keyText, IconUse icon) {
         BindRow r = rows.get(id);
         if (r == null) {
-            rows.put(id, new BindRow(id, name, keyText));
+            rows.put(id, new BindRow(id, name, keyText, icon));
         } else {
             r.name = name;
             r.keyText = keyText;
+            r.icon = icon;
             r.present = true;
         }
+    }
+
+    /** Иконка раздела модуля: та же, что у категории в ClickGUI. */
+    private static IconUse iconOf(Category category) {
+        if (category == null) return IconUse.MISC;
+        return switch (category) {
+            case COMBAT -> IconUse.FIGHT;
+            case MOVEMENT -> IconUse.MOVEMENT;
+            case RENDER -> IconUse.RENDER;
+            case PLAYER -> IconUse.PLAYER;
+            case MISC -> IconUse.MISC;
+        };
     }
 
     @Override
@@ -164,11 +183,15 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
 
             float keyW = Fonts.SF_MEDIUM.getWidth(r.keyText, KEY);
             float divX = pillX + rowW - HudStyle.PILL_PAD - keyW - 6.0F;
-            String shown = ServerGui.ellipsize(r.name,
-                    Math.max(16.0F, divX - 6.0F - (pillX + HudStyle.PILL_PAD)), NAME);
+            float iconW = Fonts.iconFittedWidth(r.icon, CAT_ICON);
+            float iconLeft = divX - 6.0F - iconW;
+            String shown = HudText.ellipsize(r.name,
+                    Math.max(16.0F, iconLeft - 6.0F - (pillX + HudStyle.PILL_PAD)), NAME);
 
             Fonts.drawString(Fonts.SF_MEDIUM, shown, pillX + HudStyle.PILL_PAD, textY, NAME,
                     ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, a));
+            Fonts.drawIconFitted(r.icon, iconLeft, midY, CAT_ICON,
+                    ColorUtil.multiplyAlpha(ColorUtil.withAlpha(Theme.getAccentColor(), 220), a));
             Render2D.drawRoundedRect(divX, midY - 4.0F, HudStyle.DIVIDER_W, 8.0F, 0.5F,
                     ColorUtil.multiplyAlpha(HudStyle.DIVIDER, a));
             Fonts.drawString(Fonts.SF_MEDIUM, r.keyText, divX + 6.0F,
@@ -181,6 +204,7 @@ public final class HotkeysHud extends HudElement implements IMinecraft {
 
     private static float rowWidth(BindRow r) {
         return HudStyle.PILL_PAD * 2.0F + Fonts.SF_MEDIUM.getWidth(r.name, NAME) + 6.0F
+                + Fonts.iconFittedWidth(r.icon, CAT_ICON) + 6.0F
                 + HudStyle.DIVIDER_W + 6.0F + Fonts.SF_MEDIUM.getWidth(r.keyText, KEY);
     }
 }

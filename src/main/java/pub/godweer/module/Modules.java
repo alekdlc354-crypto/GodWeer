@@ -44,10 +44,7 @@ public class Modules {
     public FreeCam freeCam;
     public ItemScroller itemScroller;
     public FullBright fullBright;
-    public KillAura killAura;
-    public KillAura1 killAura1;
-    public KillAura2 killAura2;
-    public KillAura3 killAura3;
+    public Aura aura;
     public NoDelay noDelay;
     public TargetEsp targetEsp;
     public Xray xray;
@@ -66,10 +63,7 @@ public class Modules {
         this.sprint = new Sprint();
         this.elytraHelper = new ElytraHelper();
         this.fullBright = new FullBright();
-        this.killAura = new KillAura();
-        this.killAura1 = new KillAura1();
-        this.killAura2 = new KillAura2();
-        this.killAura3 = new KillAura3();
+        this.aura = new Aura();
         this.noDelay = new NoDelay();
         this.itemScroller = new ItemScroller();
         this.noForward = new NoForward();
@@ -101,10 +95,7 @@ public class Modules {
         register(
                 this.clickGui,
                 this.anInterface,
-                this.killAura,
-                this.killAura1,
-                this.killAura2,
-                this.killAura3,
+                this.aura,
                 this.noDelay,
                 this.fullBright,
                 this.nameTags,

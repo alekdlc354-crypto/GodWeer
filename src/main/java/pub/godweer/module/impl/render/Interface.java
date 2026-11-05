@@ -17,8 +17,8 @@ public final class Interface extends Module {
 
     public final MultiModeSetting elements = multiMode(
             "Elements",
-            List.of("Watermark", "Player", "Potions", "Staff", "Hotkeys", "Music", "Server Items", "Server", "CoolDowns"),
-            "Watermark", "Player", "Potions", "Staff", "Hotkeys", "Music", "Server Items", "Server", "CoolDowns"
+            List.of("Watermark", "Player", "Potions", "Staff", "Hotkeys", "Music", "CoolDowns"),
+            "Watermark", "Player", "Potions", "Staff", "Hotkeys", "Music", "CoolDowns"
     );
 
     public Interface() {

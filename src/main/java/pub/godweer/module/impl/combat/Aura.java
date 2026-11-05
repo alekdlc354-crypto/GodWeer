@@ -42,26 +42,38 @@ import pub.godweer.util.player.MoveUtility;
 import java.util.List;
 
 /**
- * KillAura3 — третий перенос «Aura» (Fabrika-версия на 1.21.1).
+ * Aura — единственная аура клиента (бывшая KillAura3, вобравшая коррекции движения
+ * KillAura2 и все остальные переносы).
  * <p>
- * Что в ней своё по сравнению с KillAura1/KillAura2:
+ * Что внутри:
  * <ul>
- *   <li>целевой угол перед отправкой квантуется под сетку чувствительности мыши
- *       (в оригинале roundToGcd; в {@link Angle#applyGCD()} та же формула);</li>
- *   <li>скорости ротации 360/360 с ускорением 50/50 за тик — то есть снап, и сюда он
- *       лёг одним {@link RotationHandler#setRotation}, без отдельного RotationStorage;</li>
- *   <li>на элитрах цель берётся по предсказанной позиции (позиция + дельта-движение),
- *       точка на 50 % высоты со сдвигом вперёд по вектору взгляда цели, а удар по такой
- *       паре идёт только ближе 5 блоков;</li>
- *   <li>коррекции четыре: None / Free / Focused / Full;</li>
- *   <li>откат считается по шкале заряда с запасом в 1.5 тика и порогом 0.9;</li>
- *   <li>удар только когда сервер засчитал бы крит ({@code canCritical} оригинала).</li>
+ *   <li>целевой угол квантуется под сетку чувствительности мыши ({@link Angle#applyGCD()});</li>
+ *   <li>на элитрах цель берётся по предсказанной позиции (позиция + дельта-движение), точка
+ *       на 50 % высоты со сдвигом вперёд по вектору взгляда цели;</li>
+ *   <li>четыре коррекции движения из KillAura2/KillAura3: None / Free / Focused / Full;</li>
+ *   <li>три режима наводки: Smooth (сама доводит угол), None (не наводится и бьёт без проверки
+ *       наводки) и Trigger (не наводится, бьёт только если ты уже смотришь в цель);</li>
+ *   <li>логика удара: Smart (бьёт на земле и в падении) / Crits (только в падении, только криты);</li>
+ *   <li>булава бьёт только после настоящего падения на {@code Mace Fall} блоков;</li>
+ *   <li>откат считается по шкале заряда с запасом в 1.5 тика.</li>
  * </ul>
- * Дальность удара, как и в двух предыдущих: не выше 2.92 блоков — 3.0 из оригинала на
- * 26.3 это ровно {@code Unfair Advantage(Reach-Hitbox)}.
+ * Дальность удара: не выше 2.92 блоков — 3.0 в 26.3 это ровно
+ * {@code Unfair Advantage(Reach-Hitbox)}.
  */
-public class KillAura3 extends Module {
-    public static KillAura3 INSTANCE;
+public class Aura extends Module {
+    public static Aura INSTANCE;
+
+    /** Логика удара: бьём и на земле, и в падении. */
+    public static final String HIT_SMART = "Smart";
+    /** Логика удара: только криты, то есть только в настоящем падении. */
+    public static final String HIT_CRITS = "Crits";
+
+    /** Наводка: аура сама доводит угол (silent-ротация). */
+    public static final String AIM_SMOOTH = "Smooth";
+    /** Наводка: аура не наводится и бьёт без проверки наводки. */
+    public static final String AIM_NONE = "None";
+    /** Наводка: аура не наводится, бьёт только если ты навёлся сам. */
+    public static final String AIM_TRIGGER = "Trigger";
 
     private static final EquipmentSlot[] ARMOR_SLOTS = {
             EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
@@ -87,6 +99,8 @@ public class KillAura3 extends Module {
     /** Предсказание цели на элитрах: вперёд на столько тиков и на столько же по её взгляду. */
     private static final double GLIDE_PREDICT_TICKS = 1.0D;
     private static final double GLIDE_FORWARD = 1.0D;
+    /** Сколько блоков нужно пролететь булаве, чтобы удар вышел smash-ударом. */
+    private static final float DEFAULT_MACE_FALL = 2.0F;
 
     private final HeaderSetting targetHeader = header("Targets");
     private final MultiModeSetting targets = multiMode("Targets",
@@ -99,19 +113,25 @@ public class KillAura3 extends Module {
 
     private final HeaderSetting attackHeader = header("Attack");
     private final CheckBox throughWalls = checkbox("Through Walls", true);
-    private final CheckBox raycastCheck = checkbox("Raycast Check", false);
     private final CheckBox noAttackWhileEating = checkbox("Pause while Using", true);
+    /** Логика удара — тот же вид настройки, что и у коррекции движения. */
+    private final ModeSetting hitLogic = mode("Hit Logic", HIT_SMART, HIT_SMART, HIT_CRITS);
     private final SliderSetting cooldownPercent = slider("Cooldown",
             DEFAULT_COOLDOWN_PERCENT, 0.0f, 100.0f, 1.0f);
     private final SliderSetting maceCooldownPercent = slider("Mace Cooldown",
             DEFAULT_MACE_COOLDOWN_PERCENT, 0.0f, 100.0f, 1.0f);
+    private final SliderSetting maceFall = slider("Mace Fall", DEFAULT_MACE_FALL, 0.0f, 4.0f, 0.1f);
     private final CheckBox sprintReset = checkbox("Sprint Reset", true);
     private final CheckBox lowerShield = checkbox("Release Shield", false);
     private final CheckBox shieldBreak = checkbox("Shield Break", true);
 
-    private final HeaderSetting rotationHeader = header("Rotation");
-    private final CheckBox clientLook = checkbox("Client Look", false);
-    private final ModeSetting correction = mode("Movement", "None", "None", "Free", "Focused", "Full");
+    private final HeaderSetting rotationHeader = header("Aim");
+    /** Режим наводки — тоже набор готовых кнопок, как у Movement. */
+    private final ModeSetting aimMode = mode("Rotation", AIM_SMOOTH, AIM_SMOOTH, AIM_NONE, AIM_TRIGGER);
+    private final CheckBox clientLook = checkbox("Client Look", false).visible(this::isSmooth);
+    private final CheckBox raycastCheck = checkbox("Raycast Check", false).visible(this::isSmooth);
+    private final ModeSetting correction = mode("Movement", "None", "None", "Free", "Focused", "Full")
+            .visible(this::isSmooth);
 
     private LivingEntity target;
     private long nextAttackAt = 0L;
@@ -121,9 +141,9 @@ public class KillAura3 extends Module {
     private int sprintResetTicks = 0;
     private boolean rotationOwned = false;
 
-    public KillAura3() {
-        super("KillAura3", "Аура с GCD-квантом целевого угла, предсказанием цели на элитрах, "
-                + "четырьмя коррекциями движения и ударом только там, где засчитается крит",
+    public Aura() {
+        super("Aura", "Аура: GCD-квант угла, предсказание на элитрах, четыре коррекции движения, "
+                        + "режимы наводки Smooth/None/Trigger и логика удара Smart/Crits",
                 Category.COMBAT);
         INSTANCE = this;
     }
@@ -131,6 +151,22 @@ public class KillAura3 extends Module {
     /** Окно, в котором KeyboardInputMixin гасит шаг вперёд: сброс спринта без setSprinting. */
     public boolean sprintHoldActive() {
         return isEnabled() && needSprintReset;
+    }
+
+    public LivingEntity getTarget() {
+        return target;
+    }
+
+    private boolean isSmooth() {
+        return aimMode.is(AIM_SMOOTH);
+    }
+
+    private boolean isTrigger() {
+        return aimMode.is(AIM_TRIGGER);
+    }
+
+    private boolean isCrits() {
+        return hitLogic.is(HIT_CRITS);
     }
 
     @Override
@@ -166,6 +202,9 @@ public class KillAura3 extends Module {
     public void onInput(PlayerInputEvent event) {
         LocalPlayer player = player();
         if (!isEnabled() || player == null || target == null) return;
+        // Коррекции движения имеют смысл только у Smooth: None и Trigger угол не трогают,
+        // значит расхождения «камера / серверный угол» у них нет.
+        if (!isSmooth()) return;
 
         switch (correction.getValue()) {
             // Free: идём туда, куда смотрит камера, а клавиши пересчитываются под
@@ -293,7 +332,7 @@ public class KillAura3 extends Module {
         return player.isFallFlying() ? glideRange.get() : attackRange.get() + aimRange.get();
     }
 
-    // ------------------------------------------------------------------ ротация
+    // ------------------------------------------------------------------ наводка
 
     private static Vec3 boxCenter(LivingEntity entity) {
         return entity.getBoundingBox().getCenter();
@@ -324,6 +363,11 @@ public class KillAura3 extends Module {
 
     private void rotate(LocalPlayer player) {
         if (target == null) {
+            releaseRotation();
+            return;
+        }
+        // None и Trigger не наводятся вообще: угол остаётся за игроком.
+        if (!isSmooth()) {
             releaseRotation();
             return;
         }
@@ -389,10 +433,14 @@ public class KillAura3 extends Module {
 
         boolean bothGliding = player.isFallFlying() && target.isFallFlying();
 
-        if (raycastCheck.getValue() && !bothGliding
-                && !RayTraceUtils.isLookingAt(target, maxAimRange(player) * 2.0D,
-                sendYaw(player), sendPitch(player), false)) {
-            return false;
+        // Trigger бьёт только когда ты сам навёл прицел; None не проверяет наводку вовсе;
+        // Smooth проверяет её только по галочке Raycast Check.
+        if (!isNoneAim() && !bothGliding) {
+            boolean checkAim = isTrigger() || raycastCheck.getValue();
+            if (checkAim && !RayTraceUtils.isLookingAt(target, maxAimRange(player) * 2.0D,
+                    sendYaw(player), sendPitch(player), false)) {
+                return false;
+            }
         }
 
         Vec3 eyes = player.getEyePosition();
@@ -406,7 +454,37 @@ public class KillAura3 extends Module {
             if (dist > hitReach()) return false;
         }
 
-        return canCritical(player);
+        return hitLogicAllows(player);
+    }
+
+    private boolean isNoneAim() {
+        return aimMode.is(AIM_NONE);
+    }
+
+    /**
+     * Логика удара.
+     * <ul>
+     *   <li>Crits: удар только там, где сервер засчитает крит — настоящее падение,
+     *       без воды, лавы, транспорта и слепоты;</li>
+     *   <li>Smart: бьёт и стоя на земле, и в падении (в падении удар выходит критом сам),
+     *       но не в воде, лаве и на транспорте.</li>
+     * </ul>
+     * Булава в обоих режимах требует настоящего падения на {@code Mace Fall} блоков:
+     * без него smash-удар не засчитывается сервером.
+     */
+    private boolean hitLogicAllows(LocalPlayer player) {
+        boolean mace = player.getMainHandItem().is(Items.MACE);
+        if (mace && player.fallDistance < maceFall.get()) return false;
+
+        if (player.isInWater() || player.isInLava()) return false;
+        if (player.isPassenger()) return false;
+        if (player.hasEffect(MobEffects.BLINDNESS)) return false;
+
+        if (isCrits()) {
+            return canCritical(player);
+        }
+        // Smart: на земле или в падении.
+        return player.onGround() || (player.fallDistance > 0.0F && fallTicks > 0);
     }
 
     /**
@@ -462,7 +540,7 @@ public class KillAura3 extends Module {
     }
 
     /**
-     * Ломка щита топором: топор в хотбаре — тихая подмена слота вокруг удара; топор в
+     * Ломка щита топориком: топор в хотбаре — тихая подмена слота вокруг удара; топор в
      * сетках — свап через открытый инвентарь, удар и обратный свап.
      */
     private boolean axeStrike(LocalPlayer player, LivingEntity blocking) {

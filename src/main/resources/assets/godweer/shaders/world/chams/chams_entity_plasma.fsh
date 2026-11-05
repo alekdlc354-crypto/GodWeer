@@ -53,5 +53,5 @@ void main() {
     col += mix(base, vec3(1.0), 0.5) * rim * 1.8;
 
     float lum = max(col.r, max(col.g, col.b));
-    fragColor = vec4(clamp(col, 0.0, 2.0), clamp(sqrt(max(lum * 0.9 + t * 0.15, 0.05)), 0.0, 1.0));
+    fragColor = vec4(clamp(col, 0.0, 2.0), clamp(0.64 + sqrt(max(lum * 0.9 + t * 0.15, 0.0)) * 0.36, 0.64, 1.0));
 }

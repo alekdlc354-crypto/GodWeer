@@ -41,7 +41,90 @@ public final class HudStyle {
     public static final int HP_FILL = ColorUtil.rgba(252, 213, 0, 255);
     public static final int HP_ABSORB = ColorUtil.rgba(168, 160, 232, 255);
 
+    // ------------------------------------------------------------------ panels
+    //
+    // Панели — общий язык для «крупных» элементов HUD (цель, кулдауны, стафф,
+    // музыка, уведомления). Плоский пилюльный drawCard остаётся у watermark и
+    // hotkeys: их внешний вид менять не просили.
+
+    /** Верх панели: чуть светлее, чтобы карточка читалась как объёмная. */
+    public static final int PANEL_TOP = ColorUtil.rgba(23, 25, 34, 238);
+    /** Низ панели: почти чёрный. */
+    public static final int PANEL_BOTTOM = ColorUtil.rgba(9, 10, 15, 244);
+    /** Тонкая обводка панели. */
+    public static final int PANEL_EDGE = ColorUtil.rgba(255, 255, 255, 20);
+    /** Светлая линия-блик по верхней кромке. */
+    public static final int PANEL_GLINT = ColorUtil.rgba(255, 255, 255, 34);
+    /** Тень под панелью. */
+    public static final int PANEL_SHADOW = ColorUtil.rgba(0, 0, 0, 90);
+
+    public static final int BAR_TRACK = ColorUtil.rgba(255, 255, 255, 24);
+    /** Светлый «призрак» здоровья, который догоняет полоску после урона. */
+    public static final int BAR_GHOST = ColorUtil.rgba(255, 255, 255, 120);
+    public static final int BAR_ARMOR = ColorUtil.rgba(126, 170, 255, 255);
+
     private HudStyle() {
+    }
+
+    /** Крупная панель: тень, вертикальный градиент и волосяная обводка. */
+    public static void drawPanel(float x, float y, float w, float h, float radius) {
+        drawPanel(x, y, w, h, radius, 1.0F);
+    }
+
+    public static void drawPanel(float x, float y, float w, float h, float radius, float alpha) {
+        if (w <= 0.5F || h <= 0.5F || alpha <= 0.01F) return;
+        Render2D.drawShadow(x, y + 1.5F, w, h, radius, 6.0F, ColorUtil.multiplyAlpha(PANEL_SHADOW, alpha));
+        Render2D.drawGradientRound(x, y, w, h, radius,
+                ColorUtil.multiplyAlpha(PANEL_TOP, alpha),
+                ColorUtil.multiplyAlpha(PANEL_TOP, alpha),
+                ColorUtil.multiplyAlpha(PANEL_BOTTOM, alpha),
+                ColorUtil.multiplyAlpha(PANEL_BOTTOM, alpha));
+        Render2D.drawRoundedOutline(x, y, w, h, radius, 1.0F, ColorUtil.multiplyAlpha(PANEL_EDGE, alpha));
+        // Блик по верхней кромке не даёт панели слипнуться с миром за ней.
+        if (h > 6.0F) {
+            Render2D.drawRoundedRect(x + radius * 0.6F, y + 0.5F, Math.max(0.0F, w - radius * 1.2F), 1.0F,
+                    0.5F, ColorUtil.multiplyAlpha(PANEL_GLINT, alpha));
+        }
+    }
+
+    /** Полоска-трек: фон + заливка слева. Никаких излишеств. */
+    public static void drawBar(float x, float y, float w, float h, float fraction, int fillColor) {
+        if (w <= 0.5F || h <= 0.5F) return;
+        float r = h / 2.0F;
+        Render2D.drawRoundedRect(x, y, w, h, r, BAR_TRACK);
+        float fill = w * Math.max(0.0F, Math.min(1.0F, fraction));
+        if (fill > 0.5F) {
+            Render2D.drawRoundedRect(x, y, fill, h, r, fillColor);
+        }
+    }
+
+    /**
+     * Полоска с «призраком»: сначала светлый след, который уползает вниз после
+     * урона, потом сама заливка. След рисуется только когда он шире заливки.
+     */
+    public static void drawBarWithGhost(float x, float y, float w, float h,
+                                        float fraction, float ghostFraction, int fillColor) {
+        if (w <= 0.5F || h <= 0.5F) return;
+        float r = h / 2.0F;
+        Render2D.drawRoundedRect(x, y, w, h, r, BAR_TRACK);
+        float ghost = w * Math.max(0.0F, Math.min(1.0F, ghostFraction));
+        if (ghost > 0.5F) {
+            Render2D.drawRoundedRect(x, y, ghost, h, r, BAR_GHOST);
+        }
+        float fill = w * Math.max(0.0F, Math.min(1.0F, fraction));
+        if (fill > 0.5F) {
+            Render2D.drawRoundedRect(x, y, fill, h, r, fillColor);
+        }
+    }
+
+    /** Волосяной разделитель по горизонтали. */
+    public static void drawHLine(float x, float y, float w, int color) {
+        Render2D.drawRoundedRect(x, y, w, 1.0F, 0.5F, color);
+    }
+
+    /** Небольшая подпись-капс: мелкий серый текст. */
+    public static void drawCaption(String text, float x, float y, float size) {
+        Fonts.drawString(Fonts.SF_MEDIUM, text, x, y, size, TEXT_DIM);
     }
 
     public static void drawCard(float x, float y, float w, float h, float radius) {
@@ -91,19 +174,28 @@ public final class HudStyle {
     public static float drawLabel(float x, float y, float w, float labelH,
                                   String title, IconUse rightIcon) {
         float padX = 8.0F;
-        float size = 7.0F;
-        float ty = y + (labelH - Fonts.SF_MEDIUM.textHeight(size)) / 2.0F + 0.3F;
+        float size = 7.5F;
+        float midY = y + labelH / 2.0F;
+        float ty = midY - Fonts.SF_MEDIUM.textHeight(size) / 2.0F + 0.3F;
 
-        float titleW = w - padX * 2.0F;
+        // Акцентная насечка слева: заголовок читается как заголовок, а не как
+        // ещё одна строка списка.
+        Render2D.drawRoundedRect(x + padX, midY - 4.0F, 2.0F, 8.0F, 1.0F,
+                ColorUtil.withAlpha(Theme.getAccentColor(), 230));
+
+        float textX = x + padX + 6.0F;
+        float titleW = w - padX * 2.0F - 6.0F;
         if (rightIcon != null) titleW -= 15.0F;
-        String shownTitle = ServerGui.ellipsize(title, Math.max(0.0F, titleW), size);
-        Fonts.drawString(Fonts.SF_MEDIUM, shownTitle, x + padX, ty, size, TEXT_SECONDARY);
+        String shownTitle = HudText.ellipsize(title, Math.max(0.0F, titleW), size);
+        Fonts.drawString(Fonts.SF_MEDIUM, shownTitle, textX, ty, size, TEXT_PRIMARY);
 
         if (rightIcon != null) {
             float glyphW = Fonts.iconFittedWidth(rightIcon, size);
-            Fonts.drawIconFitted(rightIcon, x + w - padX - glyphW, y + labelH / 2.0F, size,
+            Fonts.drawIconFitted(rightIcon, x + w - padX - glyphW, midY, size,
                     ColorUtil.withAlpha(Theme.getAccentColor(), 235));
         }
+        // Волосяная линия под шапкой отделяет её от содержимого.
+        drawHLine(x + padX, y + labelH - 0.5F, Math.max(0.0F, w - padX * 2.0F), PANEL_EDGE);
         return y + labelH;
     }
 

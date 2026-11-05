@@ -245,6 +245,36 @@ public final class Localization {
         RU_DICT.put("Nebula", "Туманность");
         RU_DICT.put("Plasma", "Плазма");
         RU_DICT.put("Caustic", "Каустика");
+
+        // Aura: логика удара, наводка, коррекции движения.
+        RU_DICT.put("Hit Logic", "Логика удара");
+        RU_DICT.put("Smart", "Умная");
+        RU_DICT.put("Crits", "Криты");
+        RU_DICT.put("Trigger", "Триггер");
+        RU_DICT.put("Aim", "Наводка");
+        RU_DICT.put("Mace Fall", "Падение булавы");
+        RU_DICT.put("Pause while Using", "Пауза при использовании");
+        RU_DICT.put("Release Shield", "Отпускать щит");
+        RU_DICT.put("Shield Break", "Ломать щит");
+        RU_DICT.put("Client Look", "Клиентский поворот");
+        RU_DICT.put("Raycast Check", "Проверка наводки");
+        RU_DICT.put("Aim Range", "Дистанция наводки");
+        RU_DICT.put("Glide Range", "Дистанция на элитрах");
+        RU_DICT.put("Priority", "Приоритет");
+        RU_DICT.put("Health", "Здоровье");
+        RU_DICT.put("Angle", "Угол");
+        RU_DICT.put("Invisible", "Невидимые");
+        RU_DICT.put("Peaceful", "Мирные");
+
+        // ShaderHands: новые эффекты.
+        RU_DICT.put("Style", "Стиль");
+        RU_DICT.put("Opacity", "Прозрачность");
+        RU_DICT.put("Both Hands", "Обе руки");
+        RU_DICT.put("Chrome", "Хром");
+        RU_DICT.put("Prism", "Призма");
+        RU_DICT.put("Voltage", "Разряды");
+        RU_DICT.put("Vapor", "Дым");
+        RU_DICT.put("Solar", "Плазма");
     }
 
     public static String get(String text) {

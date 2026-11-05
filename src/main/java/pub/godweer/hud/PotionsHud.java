@@ -195,42 +195,52 @@ public final class PotionsHud extends HudElement implements IMinecraft {
             float slide = (1.0F - a) * -6.0F;
             float pillX = x + slide;
             float midY = cy + HudStyle.PILL_H / 2.0F;
+            float textY = midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F;
 
             HudStyle.drawCard(pillX, cy, rowW, HudStyle.PILL_H, HudStyle.PILL_R, a);
 
-            float nameX = pillX + HudStyle.PILL_PAD;
+            // Раскладка справа налево: иконка -> разделитель -> время -> остальное
+            // под имя с уровнем. Так строки не наезжают друг на друга ни при каком
+            // языке и любой длине ника эффекта.
+            float iconLeft = pillX + rowW - HudStyle.PILL_PAD - FX_ICON;
+            float iconY = midY - FX_ICON / 2.0F;
+            float divX = iconLeft - 4.0F - HudStyle.DIVIDER_W;
+            float timeW = Fonts.SF_MEDIUM.getWidth(r.timeText, TEXT);
+            float timeX = divX - 4.0F - timeW;
+
             String ampStr = r.amplifier > 1 ? " " + r.amplifier : "";
             float ampW = Fonts.SF_MEDIUM.getWidth(ampStr, TEXT);
-            float timeW = Fonts.SF_MEDIUM.getWidth(r.timeText, TEXT);
-            float rightBlock = FX_ICON + 4.0F + HudStyle.DIVIDER_W + 4.0F + timeW + HudStyle.PILL_PAD;
-            String shown = ServerGui.ellipsize(r.baseName,
-                    Math.max(16.0F, rowW - rightBlock - HudStyle.PILL_PAD - ampW), TEXT);
+            float nameX = pillX + HudStyle.PILL_PAD;
+            float nameRoom = Math.max(12.0F, timeX - 6.0F - nameX - ampW);
+            String shown = HudText.ellipsize(r.baseName, nameRoom, TEXT);
 
-            Fonts.drawString(Fonts.SF_MEDIUM, shown, nameX, midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F,
-                    TEXT, ColorUtil.multiplyAlpha(r.bad ? HARM_COLOR : HudStyle.TEXT_PRIMARY, a));
+            Fonts.drawString(Fonts.SF_MEDIUM, shown, nameX, textY, TEXT,
+                    ColorUtil.multiplyAlpha(r.bad ? HARM_COLOR : HudStyle.TEXT_PRIMARY, a));
             if (!ampStr.isEmpty()) {
                 Fonts.drawString(Fonts.SF_MEDIUM, ampStr, nameX + Fonts.SF_MEDIUM.getWidth(shown, TEXT),
-                        midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F, TEXT,
-                        ColorUtil.withAlpha(r.bad ? HARM_COLOR : accent, Math.round(255 * a)));
+                        textY, TEXT,
+                        ColorUtil.multiplyAlpha(r.bad ? HARM_COLOR : accent, a));
             }
 
-            float tailX = pillX + rowW - HudStyle.PILL_PAD - FX_ICON;
-            if (extractor != null && r.icon != null) {
-                Render2DUtil.flush();
-                extractor.pose().pushMatrix();
-                extractor.pose().translate(tailX, midY - FX_ICON / 2.0F);
-                float sc = FX_ICON / 18.0F;
-                extractor.pose().scale(sc, sc);
-                extractor.blit(r.icon, 0, 0, 18, 18, 0.0F, 1.0F, 0.0F, 1.0F);
-                extractor.pose().popMatrix();
-            }
-
-            float divX = tailX - FX_ICON - 4.0F;
+            Fonts.drawString(Fonts.SF_MEDIUM, r.timeText, timeX, textY, TEXT,
+                    ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, a));
             Render2D.drawRoundedRect(divX, midY - 4.0F, HudStyle.DIVIDER_W, 8.0F, 0.5F,
                     ColorUtil.multiplyAlpha(HudStyle.DIVIDER, a));
-            Fonts.drawString(Fonts.SF_MEDIUM, r.timeText, divX - 4.0F - timeW,
-                    midY - Fonts.SF_MEDIUM.textHeight(TEXT) / 2.0F + 0.35F, TEXT,
-                    ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, a));
+
+            if (r.icon != null) {
+                // Иконка эффекта — ванильная текстура 18x18: держим её в пределах
+                // пилюли и гасим вместе с появлением строки.
+                if (extractor != null) {
+                    Render2DUtil.flush();
+                    extractor.pose().pushMatrix();
+                    extractor.pose().translate(iconLeft, iconY);
+                    float sc = FX_ICON / 18.0F * (0.85F + 0.15F * a);
+                    extractor.pose().scale(sc, sc);
+                    extractor.blit(r.icon, 0, 0, 18, 18, 0.0F, 1.0F, 0.0F, 1.0F);
+                    extractor.pose().popMatrix();
+                    Render2DUtil.flush();
+                }
+            }
 
             cy += HudStyle.PILL_H + ROW_GAP;
         }
@@ -239,7 +249,8 @@ public final class PotionsHud extends HudElement implements IMinecraft {
     private float rowWidth(EffectRow r) {
         float ampW = Fonts.SF_MEDIUM.getWidth(r.amplifier > 1 ? " " + r.amplifier : "", TEXT);
         float timeW = Fonts.SF_MEDIUM.getWidth(r.timeText, TEXT);
+        // PAD + имя + уровень + 6 до времени + время + 4 + разделитель + 4 + иконка + PAD
         return HudStyle.PILL_PAD * 2.0F + Fonts.SF_MEDIUM.getWidth(r.baseName, TEXT) + ampW
-                + timeW + FX_ICON + HudStyle.DIVIDER_W + 8.0F;
+                + 6.0F + timeW + 4.0F + HudStyle.DIVIDER_W + 4.0F + FX_ICON;
     }
 }

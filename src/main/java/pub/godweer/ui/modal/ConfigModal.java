@@ -7,7 +7,7 @@ import pub.godweer.util.style.Theme;
 import pub.godweer.util.render.Render2D;
 import pub.godweer.util.render.font.Fonts;
 import pub.godweer.hud.Notifications;
-import pub.godweer.hud.ServerGui;
+import pub.godweer.hud.HudText;
 import pub.godweer.ui.clickgui.PanelRefractions;
 import pub.godweer.config.ConfigManager;
 
@@ -134,7 +134,7 @@ public class ConfigModal implements Modal {
 
             float rowBtnDeleteX = innerX + innerW - BTN - 2.0F;
             float rowBtnLoadX = rowBtnDeleteX - BTN - 4.0F;
-            String shown = ServerGui.ellipsize(cfg, rowBtnLoadX - innerX - 14.0F, ModalShell.LABEL);
+            String shown = HudText.ellipsize(cfg, rowBtnLoadX - innerX - 14.0F, ModalShell.LABEL);
             Fonts.drawString(Fonts.SF_MEDIUM, shown, innerX + 10.0F,
                     rowY + (ROW - Fonts.SF_MEDIUM.textHeight(ModalShell.LABEL)) / 2.0F + 0.35F,
                     ModalShell.LABEL,

@@ -129,7 +129,7 @@ public final class Notifications implements IMinecraft {
                 float y = screenH - MARGIN - H - index * (H + GAP);
                 float x = right - W + (1.0F - Math.min(1.0F, a)) * 22.0F;
 
-                HudStyle.drawCard(x, y, W, H, RADIUS, a);
+                HudStyle.drawPanel(x, y, W, H, RADIUS, a);
 
                 float slotX = x + 6.0F;
                 float slotY = y + (H - SLOT) / 2.0F;
@@ -139,7 +139,7 @@ public final class Notifications implements IMinecraft {
                 Fonts.drawIconFittedCentered(t.icon, slotX + SLOT / 2.0F, slotY + SLOT / 2.0F,
                         9.0F, ColorUtil.multiplyAlpha(t.accent, a));
 
-                String shown = ServerGui.ellipsize(t.text, W - (SLOT + 18.0F), TEXT);
+                String shown = HudText.ellipsize(t.text, W - (SLOT + 18.0F), TEXT);
                 Fonts.drawString(Fonts.SF_MEDIUM, shown, slotX + SLOT + 6.0F,
                         y + (H - Fonts.SF_MEDIUM.textHeight(TEXT)) / 2.0F + 0.35F, TEXT,
                         ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, a));

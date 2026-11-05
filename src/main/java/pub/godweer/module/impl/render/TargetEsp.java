@@ -15,7 +15,7 @@ import pub.godweer.event.list.Render2DEvent;
 import pub.godweer.event.list.Render3DEvent;
 import pub.godweer.module.Category;
 import pub.godweer.module.Module;
-import pub.godweer.module.impl.combat.KillAura;
+import pub.godweer.module.impl.combat.Aura;
 import pub.godweer.module.settings.impl.CheckBox;
 import pub.godweer.module.settings.impl.ColorSetting;
 import pub.godweer.module.settings.impl.ModeSetting;
@@ -25,7 +25,7 @@ import pub.godweer.friend.FriendManager;
 /**
  * Target ESP: highlights the current target with a themed 2D marker in its center,
  * lightning bolts, scattered cubes or a bloom cloud.
- * Цель берётся только из KillAura или с наводки (прицел на модели).
+ * Цель берётся только из Aura или с наводки (прицел на модели).
  */
 public final class TargetEsp extends Module {
 
@@ -76,7 +76,7 @@ public final class TargetEsp extends Module {
     }
 
     /**
-     * Цель кадра: то, что выбрала KillAura, а если аура выключена или цели у неё
+     * Цель кадра: то, что выбрала Aura, а если аура выключена или цели у неё
      * нет — во что смотрит прицел. Других источников нет: эффект появляется только
      * вместе с реальной целью.
      */
@@ -103,7 +103,7 @@ public final class TargetEsp extends Module {
     }
 
     private LivingEntity aura(Minecraft mc, LocalPlayer player) {
-        KillAura killAura = KillAura.INSTANCE;
+        Aura killAura = Aura.INSTANCE;
         if (killAura == null || !killAura.isEnabled()) return null;
         LivingEntity target = killAura.getTarget();
         return acceptable(target, player) ? target : null;

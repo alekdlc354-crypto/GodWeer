@@ -51,12 +51,13 @@ public class PiplinePost {
             .withCull(false)
             .build();
 
-    public static final RenderPipeline HAND_AURORA = handFillPipeline("hand_aurora", "godweer:post/hands/hand_aurora");
-    public static final RenderPipeline HAND_NEBULA = handFillPipeline("hand_nebula", "godweer:post/hands/hand_nebula");
-    public static final RenderPipeline HAND_HOLO = handFillPipeline("hand_holo", "godweer:post/hands/hand_holo");
-    public static final RenderPipeline HAND_CAUSTICS = handFillPipeline("hand_caustics", "godweer:post/hands/hand_caustics");
-    public static final RenderPipeline HAND_EMBER = handFillPipeline("hand_ember", "godweer:post/hands/hand_ember");
-    public static final RenderPipeline HAND_FROST = handFillPipeline("hand_frost", "godweer:post/hands/hand_frost");
+    // Заливка рук: пять полностью новых эффектов вместо старых aurora/nebula/holo/
+    // caustics/ember/frost. Все пять используют одну раскладку uniform'ов.
+    public static final RenderPipeline HAND_CHROME = handFillPipeline("hand_chrome", "godweer:post/hands/hand_chrome");
+    public static final RenderPipeline HAND_PRISM = handFillPipeline("hand_prism", "godweer:post/hands/hand_prism");
+    public static final RenderPipeline HAND_VOLTAGE = handFillPipeline("hand_voltage", "godweer:post/hands/hand_voltage");
+    public static final RenderPipeline HAND_VAPOR = handFillPipeline("hand_vapor", "godweer:post/hands/hand_vapor");
+    public static final RenderPipeline HAND_SOLAR = handFillPipeline("hand_solar", "godweer:post/hands/hand_solar");
     public static final RenderPipeline HANDS_GLOW_MASK = handsGlowPipeline("hands_glow_mask", "godweer:post/hands/hands_glow_mask", GLOW_HANDS_MASK_LAYOUT, glowFloatTarget());
     public static final RenderPipeline HANDS_GLOW_BLUR = handsGlowPipeline("hands_glow_blur", "godweer:post/hands/hands_glow_blur", GLOW_HANDS_BLUR_LAYOUT, glowFloatTarget());
     public static final RenderPipeline HANDS_GLOW_COMPOSITE = handsGlowPipeline("hands_glow_composite", "godweer:post/hands/hands_glow_composite", GLOW_HANDS_COMPOSITE_LAYOUT, new ColorTargetState(BlendFunction.ADDITIVE));
@@ -176,17 +177,30 @@ public class PiplinePost {
 
     public static final GpuFormat EFFECT_FORMAT = GpuFormat.RGBA8_UNORM;
 
+    /**
+     * Chams-пайплайн тела.
+     * <p>
+     * Cull выключен намеренно: у модели игрока часть частей подаётся зеркальной
+     * позой, и при включённом отсечении при взгляде сверху (камера выше цели)
+     * верхние грани головы и плеч оказывались back-facing — тело выглядело
+     * «пробитым» и частично невидимым. Без отсечения силуэт целый с любого угла.
+     * <p>
+     * Обычный проход пишет глубину: иначе внутренние грани рисуются поверх
+     * внешних в порядке обхода и корпус просвечивает сам сквозь себя. Ghost-проход
+     * (ALWAYS_PASS) глубину не пишет — он и нужен, чтобы просвечивать сквозь мир.
+     */
     private static RenderPipeline chamsEntityPipeline(String name, String fragment, CompareOp depthCompare) {
+        boolean writesDepth = depthCompare != CompareOp.ALWAYS_PASS;
         return RenderPipeline.builder()
                 .withLocation(Identifier.parse("godweer:pipeline/world/chams/" + name))
                 .withVertexShader(Identifier.parse("godweer:world/chams_entity"))
                 .withFragmentShader(Identifier.parse("godweer:world/" + fragment))
                 .withBindGroupLayout(CHAMS_ENTITY_LAYOUT)
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-                .withDepthStencilState(new DepthStencilState(depthCompare, false))
+                .withDepthStencilState(new DepthStencilState(depthCompare, writesDepth))
                 .withVertexBinding(0, DefaultVertexFormat.ENTITY)
                 .withPrimitiveTopology(PrimitiveTopology.QUADS)
-                .withCull(true)
+                .withCull(false)
                 .build();
     }
 

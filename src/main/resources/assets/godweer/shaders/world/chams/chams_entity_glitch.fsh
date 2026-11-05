@@ -58,6 +58,6 @@ void main() {
     col += mix(base, vec3(1.0), 0.45) * pow(fres, 2.0) * 1.3;
 
     float lum = clamp(dot(col, vec3(0.299, 0.587, 0.114)), 0.0, 1.6);
-    float alpha = clamp(0.34 + lum * 0.5 + pow(fres, 2.0) * 0.3, 0.0, 1.0);
+    float alpha = clamp(0.58 + lum * 0.32 + pow(fres, 2.0) * 0.24, 0.58, 1.0);
     fragColor = vec4(clamp(col, 0.0, 2.0), alpha);
 }

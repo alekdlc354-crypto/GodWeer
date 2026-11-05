@@ -282,7 +282,7 @@ public final class StaffHud extends HudElement implements IMinecraft {
                         if (vanishedTag == null) continue;
                         for (String member : team.getPlayers()) {
                             if (member == null || member.equalsIgnoreCase(self)) continue;
-                            String cleanMember = ServerGui.stripCodes(member).trim();
+                            String cleanMember = HudText.stripCodes(member).trim();
                             if (!VALID_NICK.matcher(cleanMember).matches()) continue;
                             String low = cleanMember.toLowerCase(Locale.ROOT);
                             if (onlineLower.contains(low)) continue;
@@ -388,7 +388,7 @@ public final class StaffHud extends HudElement implements IMinecraft {
         this.width = animatedW;
         this.height = animatedH;
 
-        HudStyle.drawCard(x, y, width, height, RADIUS);
+        HudStyle.drawPanel(x, y, width, height, RADIUS);
         HudStyle.drawLabel(x, y, width, HEADER_H, "Staff", IconUse.STAFF);
 
         Render2D.pushScissor(x, y + HEADER_H + 1.0F, width, Math.max(0.0F, height - HEADER_H - 1.0F));
@@ -444,7 +444,7 @@ public final class StaffHud extends HudElement implements IMinecraft {
             // Staff nickname
             float nameSize = 7.5F;
             float availNameW = Math.max(18.0F, rightLimit - cx);
-            String shownName = ServerGui.ellipsize(r.name, availNameW, nameSize);
+            String shownName = HudText.ellipsize(r.name, availNameW, nameSize);
             Fonts.drawString(Fonts.SF_MEDIUM, shownName, cx,
                     midY - Fonts.SF_MEDIUM.textHeight(nameSize) / 2.0F + 0.35F,
                     nameSize, ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, a));

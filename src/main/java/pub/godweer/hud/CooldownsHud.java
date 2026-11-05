@@ -220,7 +220,7 @@ public final class CooldownsHud extends HudElement implements IMinecraft {
 
         int accent = Theme.getAccentColor();
 
-        HudStyle.drawCard(x, y, width, height, RADIUS);
+        HudStyle.drawPanel(x, y, width, height, RADIUS);
         HudStyle.drawLabel(x, y, width, HEADER_H, "CoolDowns", IconUse.CLOCK);
 
         Render2D.pushScissor(x, y + HEADER_H + 1.0F, width, Math.max(0.0F, height - HEADER_H - 1.0F));
@@ -261,7 +261,7 @@ public final class CooldownsHud extends HudElement implements IMinecraft {
 
             // Name over the bar, bar fills down to zero as the cooldown runs out
             float barW = Math.max(20.0F, tx - 8.0F - cx);
-            String name = ServerGui.ellipsize(itemName(r.stack), barW, 7.5F);
+            String name = HudText.ellipsize(itemName(r.stack), barW, 7.5F);
             Fonts.drawString(Fonts.SF_MEDIUM, name, cx,
                     midY - Fonts.SF_MEDIUM.textHeight(7.5F) / 2.0F - 1.6F + 0.35F, 7.5F,
                     ColorUtil.multiplyAlpha(HudStyle.TEXT_SECONDARY, a));
@@ -282,7 +282,7 @@ public final class CooldownsHud extends HudElement implements IMinecraft {
 
     private static String itemName(ItemStack stack) {
         try {
-            String s = ServerGui.stripCodes(stack.getHoverName().getString()).trim();
+            String s = HudText.stripCodes(stack.getHoverName().getString()).trim();
             if (!s.isEmpty()) return s;
         } catch (Exception ignored) {
         }

@@ -16,10 +16,7 @@ import pub.godweer.Client;
 import pub.godweer.util.player.MoveBlockUtility;
 import pub.godweer.rotation.RotationHandler;
 import pub.godweer.event.list.PlayerInputEvent;
-import pub.godweer.module.impl.combat.KillAura;
-import pub.godweer.module.impl.combat.KillAura1;
-import pub.godweer.module.impl.combat.KillAura2;
-import pub.godweer.module.impl.combat.KillAura3;
+import pub.godweer.module.impl.combat.Aura;
 import pub.godweer.module.impl.misc.FreeCam;
 import pub.godweer.module.impl.misc.ServerHelper;
 import pub.godweer.module.impl.movement.NoForward;
@@ -106,21 +103,15 @@ public abstract class KeyboardInputMixin extends ClientInput {
             ).normalized();
         }
 
-        // Сброс спринта KillAura/KillAura1/KillAura2/KillAura3 и легитного ServerHelper: гасим только forward.
+        // Сброс спринта Aura и легитного ServerHelper: гасим только forward.
         // Пропавший импульс вперёд ваниль сама читает в aiStep (hasForwardImpulse
         // == false) и роняет спринт, отправляя STOP_SPRINTING; клавишу спринта и
         // флаг не подменяем. Делаем это здесь, а не в слушателе события: гашение
         // не должно зависеть от того, отработали ли остальные подписчики
         // PlayerInputEvent.
-        KillAura aura = KillAura.INSTANCE;
-        KillAura1 aura1 = KillAura1.INSTANCE;
-        KillAura2 aura2 = KillAura2.INSTANCE;
-        KillAura3 aura3 = KillAura3.INSTANCE;
+        Aura aura = Aura.INSTANCE;
         ServerHelper helper = ServerHelper.INSTANCE;
         boolean sprintHold = (aura != null && aura.sprintHoldActive())
-                || (aura1 != null && aura1.sprintHoldActive())
-                || (aura2 != null && aura2.sprintHoldActive())
-                || (aura3 != null && aura3.sprintHoldActive())
                 || (helper != null && helper.sprintHoldActive());
         if (sprintHold && this.keyPresses != null) {
             Input cur = this.keyPresses;

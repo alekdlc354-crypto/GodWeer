@@ -189,7 +189,7 @@ public final class MusicHud extends HudElement implements IMinecraft {
         this.height = animatedH;
 
         // ----- card -----
-        HudStyle.drawCard(x, y, width, height, RADIUS);
+        HudStyle.drawPanel(x, y, width, height, RADIUS);
         HudStyle.drawLabel(x, y, width, HEADER_H, "Music", IconUse.MUSIC);
 
         // ----- playing indicator (pulsing dot in the header) -----
@@ -219,12 +219,12 @@ public final class MusicHud extends HudElement implements IMinecraft {
         int titleColor = track.playing() ? HudStyle.TEXT_PRIMARY : HudStyle.TEXT_DIM;
         int artistColor = track.playing() ? HudStyle.TEXT_SECONDARY : HudStyle.TEXT_DIM;
 
-        String title = ServerGui.ellipsize(track.title(), textRoom, TITLE_SIZE);
+        String title = HudText.ellipsize(track.title(), textRoom, TITLE_SIZE);
         Fonts.drawString(Fonts.SF_MEDIUM, title, textX, titleY, TITLE_SIZE, titleColor);
 
         if (!track.artist().isEmpty()) {
             float artistY = titleY + Fonts.SF_MEDIUM.textHeight(TITLE_SIZE) + 1.0F;
-            String artist = ServerGui.ellipsize(track.artist(), textRoom, ARTIST_SIZE);
+            String artist = HudText.ellipsize(track.artist(), textRoom, ARTIST_SIZE);
             Fonts.drawString(Fonts.SF_MEDIUM, artist, textX, artistY, ARTIST_SIZE, artistColor);
         }
 
@@ -282,7 +282,7 @@ public final class MusicHud extends HudElement implements IMinecraft {
             Render2D.drawRoundedRect(x + PAD_X, lyricsY, lyricsW, lyricsWindowH, 4.0F,
                     HudStyle.ROW_BG);
 
-            String shown = ServerGui.ellipsize(lyricText, lyricsW - 10.0F, 7.0F);
+            String shown = HudText.ellipsize(lyricText, lyricsW - 10.0F, 7.0F);
             float textY = lyricsY + (nextLyricText.isEmpty()
                     ? (lyricsWindowH - Fonts.SF_MEDIUM.textHeight(7.0F)) / 2.0F + 0.3F
                     : 4.0F);
@@ -290,7 +290,7 @@ public final class MusicHud extends HudElement implements IMinecraft {
                     HudStyle.TEXT_PRIMARY);
 
             if (!nextLyricText.isEmpty()) {
-                String next = ServerGui.ellipsize(nextLyricText, lyricsW - 10.0F, 6.2F);
+                String next = HudText.ellipsize(nextLyricText, lyricsW - 10.0F, 6.2F);
                 Fonts.drawCenteredString(Fonts.SF_MEDIUM, next, x + width / 2.0F,
                         lyricsY + 17.0F, 6.2F, HudStyle.TEXT_DIM);
             }
