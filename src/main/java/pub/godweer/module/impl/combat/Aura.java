@@ -53,7 +53,8 @@ import java.util.List;
  *   <li>четыре коррекции движения из KillAura2/KillAura3: None / Free / Focused / Full;</li>
  *   <li>три режима наводки: Smooth (сама доводит угол), None (не наводится и бьёт без проверки
  *       наводки) и Trigger (не наводится, бьёт только если ты уже смотришь в цель);</li>
- *   <li>логика удара: Smart (бьёт на земле и в падении) / Crits (только в падении, только криты);</li>
+ *   <li>логика удара: Smart (бьёт на земле и в падении) / Crits (только в падении, только
+ *       криты), порог падения для крита — 0.1 тика, то есть первый же тик падения;</li>
  *   <li>булава бьёт только после настоящего падения на {@code Mace Fall} блоков;</li>
  *   <li>откат считается по шкале заряда с запасом в 1.5 тика.</li>
  * </ul>
@@ -94,8 +95,12 @@ public class Aura extends Module {
     private static final double CENTER_DISTANCE = 3.0D;
     /** Оба на элитрах: удар только ближе этого расстояния до предсказанной точки. */
     private static final double BOTH_GLIDE_MAX = 5.0D;
-    /** Тики падения до удара: пакет позиции текущего тика уходит после PRE. */
-    private static final int CRIT_FALL_TICKS = 2;
+    /**
+     * Порог падения для крита, в тиках. 0.1 — удар разрешён уже на первом тике
+     * падения: раньше стояло 2 тика (≈0.1 с), и аура в прыжках с низкой опорой
+     * до порога почти никогда не доходила — успевала приземлиться.
+     */
+    private static final float CRIT_FALL_TICKS = 0.1F;
     /** Предсказание цели на элитрах: вперёд на столько тиков и на столько же по её взгляду. */
     private static final double GLIDE_PREDICT_TICKS = 1.0D;
     private static final double GLIDE_FORWARD = 1.0D;
@@ -483,8 +488,8 @@ public class Aura extends Module {
         if (isCrits()) {
             return canCritical(player);
         }
-        // Smart: на земле или в падении.
-        return player.onGround() || (player.fallDistance > 0.0F && fallTicks > 0);
+        // Smart: на земле или в падении (тот же порог, что у крита: 0.1 тика).
+        return player.onGround() || (player.fallDistance > 0.0F && fallTicks >= CRIT_FALL_TICKS);
     }
 
     /**
@@ -494,6 +499,7 @@ public class Aura extends Module {
      * fallDistance.
      */
     private boolean canCritical(LocalPlayer player) {
+        // Падение засчитывается с первого же тика: fallTicks >= 0.1.
         if (fallTicks < CRIT_FALL_TICKS) return false;
         if (player.onGround() || player.fallDistance <= 0.0F) return false;
         if (player.isInWater() || player.isInLava()) return false;
