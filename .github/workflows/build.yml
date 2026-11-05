@@ -52,16 +52,33 @@ jobs:
           if-no-files-found: error
 
       # Готовый .jar выкладывается релизом: ссылка открывается без логина
-      # и не требует лезть в артефакты Actions. Только из main, чтобы
-      # рабочие ветки не плодили релизы.
+      # и не требует лезть в артефакты Actions. main получает build-<run>,
+      # ветка сессии — test-<run>, старые test-* удаляются, чтобы не копились.
       - name: Publish release with JAR
-        if: success() && github.ref == 'refs/heads/main'
+        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/arena/3752399b-godweer')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           jar=$(ls build/libs/*.jar | grep -v -- '-sources' | head -n1)
-          echo "publishing $jar"
-          gh release create "build-${GITHUB_RUN_NUMBER}" "$jar" \
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            tag="build-${GITHUB_RUN_NUMBER}"
+          else
+            tag="test-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "publishing $jar as $tag"
+
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            # Оставляем два последних test-релиза. set +e: пустой grep не должен валить шаг.
+            set +e
+            gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' \
+              | grep -E '^test-[0-9]+$' | sort -t- -k2 -n | head -n -2 \
+              | while read -r old; do
+                  gh release delete "$old" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+                done
+            set -e
+          fi
+
+          gh release create "$tag" "$jar" \
             --repo "$GITHUB_REPOSITORY" \
             --title "Phone-Sosiski — сборка ${GITHUB_RUN_NUMBER}" \
             --notes "Автосборка мода. Ветка: \`${GITHUB_REF_NAME}\`, коммит: \`${GITHUB_SHA}\`.
