@@ -2,7 +2,9 @@ name: Build Mod
 
 on:
   push:
-    branches: [ main ]
+    # main — обычные сборки; ветка сессии — чтобы можно было собрать
+    # jar прямо из неё (workflow_dispatch недоступен боту).
+    branches: [ main, 'arena/3752399b-godweer' ]
   workflow_dispatch:
 
 permissions:
