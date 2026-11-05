@@ -8,6 +8,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.style.Theme;
 import pub.godweer.util.target.BloomTargetRenderer;
+import pub.godweer.util.target.GhostTargetRenderer;
 import pub.godweer.util.target.HaloTargetRenderer;
 import pub.godweer.util.target.TargetEspRenderer;
 import pub.godweer.event.EventTarget;
@@ -23,8 +24,8 @@ import pub.godweer.module.settings.impl.SliderSetting;
 import pub.godweer.friend.FriendManager;
 
 /**
- * Target ESP: highlights the current target with a themed 2D marker in its center,
- * lightning bolts, scattered cubes or a bloom cloud.
+ * Target ESP: подсветка цели — маркер в центре, молнии, кубы-хало, облако искр
+ * или призраки на орбитах.
  * Цель берётся только из Aura или с наводки (прицел на модели).
  */
 public final class TargetEsp extends Module {
@@ -33,9 +34,10 @@ public final class TargetEsp extends Module {
     public static final String MODE_LIGHTNING = "Lightning";
     public static final String MODE_CUBES = "Cubes";
     public static final String MODE_BLOOM = "Bloom";
+    public static final String MODE_GHOST = "Ghost";
 
     public final ModeSetting mode = mode("Режим", MODE_MARKER,
-            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM);
+            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM, MODE_GHOST);
 
     public final CheckBox themeColor = checkbox("Color From Theme", true);
     public final ColorSetting color = color("Color", ColorUtil.rgba(255, 170, 45, 255)).visible(() -> !themeColor.getValue());
@@ -62,9 +64,15 @@ public final class TargetEsp extends Module {
     public final SliderSetting bloomSize = slider("Свечение: Размер", 0.055f, 0.01f, 0.2f, 0.005f).visible(this::usesBloom);
     public final CheckBox bloomHurt = checkbox("Свечение: Вспышка при уроне", true).visible(this::usesBloom);
 
+    // Ghost: три сгустка на перекрестных орбитах с хвостом из таких же.
+    public final SliderSetting ghostSpeed = slider("Призраки: Скорость", 1.0f, 0.2f, 3.0f, 0.05f).visible(this::usesGhost);
+    public final SliderSetting ghostRadius = slider("Призраки: Радиус", 1.0f, 0.3f, 2.5f, 0.05f).visible(this::usesGhost);
+    public final SliderSetting ghostLength = slider("Призраки: Длина хвоста", 7.0f, 1.0f, 12.0f, 1.0f).visible(this::usesGhost);
+
     private final TargetEspRenderer renderer = new TargetEspRenderer();
     private final HaloTargetRenderer halo = new HaloTargetRenderer();
     private final BloomTargetRenderer bloom = new BloomTargetRenderer();
+    private final GhostTargetRenderer ghost = new GhostTargetRenderer();
 
     // Цель считается один раз на кадр: иначе эффекты рисуются по разным
     // результатам поиска и картинка начинает «дрожать» между проходами.
@@ -134,7 +142,11 @@ public final class TargetEsp extends Module {
 
     /** Маркер рисуем при любом режиме, кроме тех что сами рисуют в мире. */
     public boolean usesMarker() {
-        return !(usesLightning() || usesCubes() || usesBloom());
+        return !(usesLightning() || usesCubes() || usesBloom() || usesGhost());
+    }
+
+    public boolean usesGhost() {
+        return mode.getValue().equalsIgnoreCase(MODE_GHOST);
     }
 
     public boolean usesLightning() {
@@ -153,6 +165,7 @@ public final class TargetEsp extends Module {
     protected void onDisable() {
         this.halo.release();
         this.bloom.reset();
+        this.ghost.reset();
         this.renderer.release();
         this.frameResolved = false;
         this.frameTarget = null;
@@ -175,6 +188,11 @@ public final class TargetEsp extends Module {
             this.bloom.render(this, tickDelta, resolveTarget(), getAccentColor());
         } else {
             this.bloom.reset();
+        }
+        if (usesGhost()) {
+            this.ghost.render(this, tickDelta, resolveTarget(), getAccentColor());
+        } else {
+            this.ghost.reset();
         }
     }
 

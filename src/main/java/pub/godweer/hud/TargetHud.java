@@ -1,6 +1,7 @@
 package pub.godweer.hud;
 
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -16,8 +17,6 @@ import pub.godweer.util.render.font.Fonts;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.style.Theme;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -29,8 +28,8 @@ import java.util.Locale;
  * доигрывает затухание на последней цели, а цвет темы берётся из кэша: иначе
  * при закрытии он успевает дёрнуться.
  * <p>
- * Время считается по {@link System#nanoTime()}, поэтому анимации и физика
- * частиц не зависят от FPS. Массивы под предметы созданы заранее.
+ * Время считается по {@link System#nanoTime()}, поэтому анимации не зависят от
+ * FPS. Массивы под предметы созданы заранее.
  */
 public final class TargetHud extends HudElement implements IMinecraft {
 
@@ -51,6 +50,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
     /** Слот предмета: 16 px текстурного слота, рисуем в половину. */
     private static final float ITEM = 8.0F;
     private static final float ITEM_GAP = 1.5F;
+    private static final float ITEM_COUNT_SIZE = 5.4F;
 
     // Wave: компактная плашка.
     private static final float WAVE_W = 110.0F;
@@ -65,36 +65,26 @@ public final class TargetHud extends HudElement implements IMinecraft {
     private static final int HP_GOOD = ColorUtil.rgba(120, 226, 128, 255);
     private static final int HP_MID = ColorUtil.rgba(250, 206, 74, 255);
     private static final int HP_BAD = ColorUtil.rgba(238, 78, 78, 255);
-    private static final int HURT_TINT = 0xFFFF6B6B;
-    private static final int HURT_OVERLAY = ColorUtil.rgba(255, 74, 74, 255);
+    /** Красная вспышка урона, как у ванильной модели: красный по голове, без обводок. */
+    private static final int HURT_FLASH = ColorUtil.rgba(214, 46, 46, 255);
     private static final int HEART_SHADOW = ColorUtil.rgba(0, 0, 0, 120);
-
-    private static final int MAX_PARTICLES = 14;
-
-    private static final class Spark {
-        float x;
-        float y;
-        float vx;
-        float vy;
-        float size;
-        float life;
-        float maxLife;
-    }
+    private static final int MAX_ITEMS = 6;
 
     /** Массивы под предметы: создаются один раз, чтобы не мусорить в рендере. */
     private final ItemStack[] armorScratch = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
     private final ItemStack[] displayItems = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY,
             ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
-    private final List<Spark> sparks = new ArrayList<>(MAX_PARTICLES);
+    private final ItemStack[] displaySources = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY,
+            ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
+    private final int[] displayCounts = new int[MAX_ITEMS];
 
     private LivingEntity liveTarget;
     private LivingEntity lastTarget;
-    private int lastHurtTime;
 
     private long lastNanos;
     private float appear;
     private float open;
-    private float hurtPulse;
+    private float hurtFlash;
     private float widthAnim = -1.0F;
     private float heightAnim = -1.0F;
 
@@ -159,7 +149,6 @@ public final class TargetHud extends HudElement implements IMinecraft {
             open = 0.0F;
             return;
         }
-        if (liveTarget != null && liveTarget != lastTarget) lastHurtTime = 0;
         if (liveTarget != null) lastTarget = liveTarget;
 
         float maxHp = Math.max(1.0F, target.getMaxHealth());
@@ -229,19 +218,12 @@ public final class TargetHud extends HudElement implements IMinecraft {
         drawItems(event, target, sx + sw - PAD * easedOpen, sy, alpha);
 
         HudStyle.drawPanel(sx, sy, sw, sh, RADIUS, alpha);
-        if (hurtPulse > 0.02F) {
-            Render2D.drawRoundedOutline(sx - 0.5F, sy - 0.5F, sw + 1.0F, sh + 1.0F, RADIUS + 0.5F, 1.0F,
-                    ColorUtil.withAlpha(HURT_OVERLAY, Math.round(150.0F * hurtPulse * alpha)));
-        }
 
         if (wave) {
             drawWaveBody(target, name, hpText, absText, sx, sy, sw, sh, alpha);
         } else {
             drawDefaultBody(target, name, hpText, absText, sx, sy, sw, sh, alpha);
         }
-
-        drawSparks(dt, sx + PAD + (wave ? WAVE_HEAD : HEAD) * 0.5F,
-                sy + (wave ? WAVE_HEAD * 0.5F + PAD : sh * 0.5F), alpha);
     }
 
     // ------------------------------------------------------------------ раскладки
@@ -395,17 +377,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
             absTrail = absFrac;
         }
 
-        hpPulse(dt, live, Math.max(0, target.hurtTime));
-    }
-
-    /** hurtTime растёт на кадр удара: именно по приросту и пускаем искры. */
-    private void hpPulse(float dt, boolean live, int hurt) {
-        hurtPulse = Mth.clamp(hurtPulse - dt * 2.4F, 0.0F, 1.0F);
-        if (live && hurt > lastHurtTime) {
-            hurtPulse = 1.0F;
-            spawnSparks(3);
-        }
-        lastHurtTime = hurt;
+        hurtFlash = live ? Mth.clamp(target.hurtTime / 10.0F, 0.0F, 1.0F) : 0.0F;
     }
 
     private static float approach(float value, float target, float speed, float dt) {
@@ -429,8 +401,7 @@ public final class TargetHud extends HudElement implements IMinecraft {
     // ------------------------------------------------------------------ голова
 
     private void drawHead(LivingEntity target, float hx, float hy, float size, float alpha) {
-        int tint = ColorUtil.lerp(0xFFFFFFFF, HURT_TINT, hurtPulse);
-        tint = ColorUtil.multiplyAlpha(tint, alpha);
+        int tint = ColorUtil.multiplyAlpha(0xFFFFFFFF, alpha);
         boolean drawn = false;
 
         if (target instanceof AbstractClientPlayer player) {
@@ -450,15 +421,21 @@ public final class TargetHud extends HudElement implements IMinecraft {
         }
         Render2D.drawRoundedOutline(hx, hy, size, size, HEAD_R, 1.0F,
                 ColorUtil.multiplyAlpha(HudStyle.PANEL_EDGE, alpha));
-        if (hurtPulse > 0.02F) {
+        if (hurtFlash > 0.02F) {
+            // Ваниль заливает модель красным на hurtTime: тот же линейный спад.
             Render2D.drawRoundedRect(hx, hy, size, size, HEAD_R,
-                    ColorUtil.multiplyAlpha(HURT_OVERLAY, Math.round(hurtPulse * 105.0F * alpha)));
+                    ColorUtil.multiplyAlpha(HURT_FLASH, hurtFlash * 0.55F * alpha));
         }
     }
 
     // ------------------------------------------------------------------ предметы
 
-    /** Броня, главная и вторая рука — в половину слота, над правым краем плашки. */
+    /**
+     * Броня, главная и вторая рука — в половину слота, над правым краем плашки.
+     * Одинаковые предметы идут одной иконкой со счётчиком: два тотема в руках не
+     * должны занимать две позиции. Зачарования, износ и имена с иконок снимаются —
+     * на половине слота блеск и полоска прочности читаются как грязь.
+     */
     private void drawItems(Render2DEvent event, LivingEntity target, float rightEdge, float top, float alpha) {
         var extractor = event.getGuiGraphicsExtractor();
         if (extractor == null || alpha <= 0.05F) return;
@@ -469,13 +446,34 @@ public final class TargetHud extends HudElement implements IMinecraft {
         armorScratch[3] = stackOrEmpty(target, EquipmentSlot.FEET);
 
         int count = 0;
-        for (ItemStack stack : armorScratch) {
-            if (!stack.isEmpty()) displayItems[count++] = stack;
+        for (int i = 0; i < MAX_ITEMS; i++) {
+            displaySources[i] = ItemStack.EMPTY;
+            displayItems[i] = ItemStack.EMPTY;
+            displayCounts[i] = 0;
         }
-        ItemStack main = safeMainHand(target);
-        ItemStack off = safeOffHand(target);
-        if (!main.isEmpty()) displayItems[count++] = main;
-        if (!off.isEmpty()) displayItems[count++] = off;
+
+        for (int i = 0; i < 6; i++) {
+            ItemStack raw = i < 4 ? armorScratch[i]
+                    : i == 4 ? safeMainHand(target) : safeOffHand(target);
+            if (raw == null || raw.isEmpty()) continue;
+
+            int slot = -1;
+            for (int j = 0; j < count; j++) {
+                if (ItemStack.isSameItemSameComponents(displaySources[j], raw)) {
+                    slot = j;
+                    break;
+                }
+            }
+            if (slot >= 0) {
+                displayCounts[slot]++;
+                continue;
+            }
+            if (count >= MAX_ITEMS) continue;
+            displaySources[count] = raw;
+            displayItems[count] = cleanCopy(raw);
+            displayCounts[count] = 1;
+            count++;
+        }
 
         if (count > 0) {
             float totalW = count * ITEM + (count - 1) * ITEM_GAP;
@@ -486,21 +484,48 @@ public final class TargetHud extends HudElement implements IMinecraft {
             for (int i = 0; i < count; i++) {
                 ItemStack stack = displayItems[i];
                 if (stack.isEmpty()) continue;
+                float iconX = ix + i * (ITEM + ITEM_GAP);
                 var pose = extractor.pose();
                 pose.pushMatrix();
                 try {
-                    pose.translate(ix + i * (ITEM + ITEM_GAP), iy);
+                    pose.translate(iconX, iy);
                     pose.scale(ITEM / 16.0F, ITEM / 16.0F);
                     extractor.item(stack, 0, 0);
                 } catch (Exception ignored) {
                 } finally {
                     pose.popMatrix();
                 }
+                if (displayCounts[i] > 1) {
+                    String label = String.valueOf(displayCounts[i]);
+                    Fonts.drawString(Fonts.SF_MEDIUM, label,
+                            iconX + ITEM - Fonts.SF_MEDIUM.getWidth(label, ITEM_COUNT_SIZE),
+                            iy + ITEM - Fonts.SF_MEDIUM.textHeight(ITEM_COUNT_SIZE) + 1.0F,
+                            ITEM_COUNT_SIZE, ColorUtil.multiplyAlpha(HudStyle.TEXT_PRIMARY, alpha));
+                }
             }
             Render2DUtil.flush();
         }
 
-        for (int i = 0; i < displayItems.length; i++) displayItems[i] = ItemStack.EMPTY;
+        for (int i = 0; i < MAX_ITEMS; i++) {
+            displaySources[i] = ItemStack.EMPTY;
+            displayItems[i] = ItemStack.EMPTY;
+            displayCounts[i] = 0;
+        }
+    }
+
+    /** Копия предмета без зачарований, износа и количества — чистая иконка. */
+    private static ItemStack cleanCopy(ItemStack source) {
+        try {
+            ItemStack clean = source.copy();
+            clean.setCount(1);
+            clean.remove(DataComponents.ENCHANTMENTS);
+            clean.remove(DataComponents.STORED_ENCHANTMENTS);
+            clean.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+            clean.remove(DataComponents.DAMAGE);
+            return clean;
+        } catch (Exception ignored) {
+            return source;
+        }
     }
 
     private static ItemStack stackOrEmpty(LivingEntity target, EquipmentSlot slot) {
@@ -527,46 +552,6 @@ public final class TargetHud extends HudElement implements IMinecraft {
             return stack == null ? ItemStack.EMPTY : stack;
         } catch (Exception ignored) {
             return ItemStack.EMPTY;
-        }
-    }
-
-    // ------------------------------------------------------------------ искры
-
-    private void spawnSparks(int amount) {
-        for (int i = 0; i < amount && sparks.size() < MAX_PARTICLES; i++) {
-            Spark spark = new Spark();
-            spark.x = 0.0F;
-            spark.y = 0.0F;
-            spark.vx = (float) (Math.random() - 0.5) * 34.0F;
-            spark.vy = (float) (Math.random() - 0.5) * 26.0F - 10.0F;
-            spark.size = 1.1F + (float) Math.random() * 1.5F;
-            spark.maxLife = 0.45F + (float) Math.random() * 0.35F;
-            spark.life = spark.maxLife;
-            sparks.add(spark);
-        }
-    }
-
-    private void drawSparks(float dt, float cx, float cy, float alpha) {
-        if (sparks.isEmpty()) return;
-
-        for (int i = sparks.size() - 1; i >= 0; i--) {
-            Spark spark = sparks.get(i);
-            spark.life -= dt;
-            if (spark.life <= 0.0F) {
-                sparks.remove(i);
-                continue;
-            }
-            spark.vy += 26.0F * dt;
-            spark.vx *= 1.0F - 1.2F * dt;
-            spark.vy *= 1.0F - 1.2F * dt;
-            spark.x += spark.vx * dt;
-            spark.y += spark.vy * dt;
-
-            float life = spark.life / spark.maxLife;
-            float fade = life * life * (3.0F - 2.0F * life);
-            float size = spark.size * (0.5F + 0.5F * fade);
-            Render2D.drawCircle(cx + spark.x, cy + spark.y, size,
-                    ColorUtil.multiplyAlpha(cachedAccent, fade * alpha * 0.85F));
         }
     }
 

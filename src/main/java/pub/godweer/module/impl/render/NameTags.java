@@ -77,6 +77,13 @@ public final class NameTags extends Module {
     private static final float HEAD = 12.0F;
     private static final float HEAD_OFFSET = 0.30F;
     private static final float TAG_TEXT_SCALE = 0.78F;
+
+    // Масштаб по дистанции: за опорные 8 блоков берём 100%, ближе — до 130%,
+    // дальше — до 55%. Появление — BACK_OUT за 0.22 с, как у карточки Target HUD.
+    private static final float REF_DISTANCE = 8.0F;
+    private static final float MIN_PERSPECTIVE = 0.55F;
+    private static final float MAX_PERSPECTIVE = 1.30F;
+    private static final float APPEAR_SECONDS = 0.22F;
     private static final float TAG_GAP = 4.5F;
 
     private static final EquipmentSlot[] EQUIPMENT_ORDER = {
@@ -127,6 +134,9 @@ public final class NameTags extends Module {
     private int targetId = -1;
     private long firstAttackTime = 0L;
     private long lastAttackTime = 0L;
+    private final Map<UUID, Float> tagAppear = new ConcurrentHashMap<>();
+    private long animNanos;
+    private float frameDelta = 1.0F / 60.0F;
 
     public final MultiModeSetting targets = multiMode(
             "Targets",
@@ -158,6 +168,7 @@ public final class NameTags extends Module {
     protected void onDisable() {
         loggedOutPlayers.clear();
         playerCache.clear();
+        tagAppear.clear();
         targetId = -1;
         firstAttackTime = 0L;
         lastAttackTime = 0L;
@@ -185,6 +196,7 @@ public final class NameTags extends Module {
         }
 
         float tickDelta = event.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        this.frameDelta = nextFrameDelta();
         float unit = BASE_SCALE * this.scale.getValue();
         double maxDistSq = 228.0 * 228.0;
 
@@ -313,7 +325,9 @@ public final class NameTags extends Module {
             }
         }
 
-        float unit = baseUnit * (1.0F + 0.08F * targetFactor);
+        float unit = baseUnit * (1.0F + 0.08F * targetFactor)
+                * perspectiveScale(entity) * appearScale(entity);
+        if (unit <= 0.02F) return;
 
         Vec3 headPosition = Render3DUtil.interpolatedPosition(entity, tickDelta)
                 .add(0.0D, entity.getBbHeight() + HEAD_OFFSET, 0.0D);
@@ -689,6 +703,42 @@ public final class NameTags extends Module {
 
         cx = drawWatermarkDivider(cx, cy, segGap, unit, alpha);
         Fonts.drawString(font, timerStr, cx, ty, fontSz, ColorUtil.rgba(255, 105, 110, Math.round(255 * alpha)));
+    }
+
+    /** Дельта кадра по nanoTime: анимация появления не зависит от FPS. */
+    private float nextFrameDelta() {
+        long now = System.nanoTime();
+        if (this.animNanos == 0L) {
+            this.animNanos = now;
+            return 1.0F / 60.0F;
+        }
+        float dt = (now - this.animNanos) / 1.0E9F;
+        this.animNanos = now;
+        return Mth.clamp(dt, 0.0F, 0.1F);
+    }
+
+    /** Тег мельче вдали и крупнее вблизи, но в разумных пределах. */
+    private float perspectiveScale(net.minecraft.world.entity.Entity entity) {
+        if (mc.player == null) return 1.0F;
+        double distance = Math.max(1.0D, mc.player.distanceTo(entity));
+        return Mth.clamp((float) (REF_DISTANCE / distance), MIN_PERSPECTIVE, MAX_PERSPECTIVE);
+    }
+
+    /** Появление с подскоком: 0 -> 1 с перелётом, дальше значение держится. */
+    private float appearScale(net.minecraft.world.entity.Entity entity) {
+        UUID id = entity.getUUID();
+        float value = this.tagAppear.getOrDefault(id, 0.0F);
+        if (value < 1.0F) {
+            value = Math.min(1.0F, value + this.frameDelta / APPEAR_SECONDS);
+            this.tagAppear.put(id, value);
+        }
+        if (this.tagAppear.size() > 256) {
+            this.tagAppear.entrySet().removeIf(entry -> entry.getValue() >= 1.0F);
+        }
+        float c1 = 1.70158F;
+        float c3 = c1 + 1.0F;
+        float t = value - 1.0F;
+        return 1.0F + c3 * t * t * t + c1 * t * t;
     }
 
     private static float tagWidth(ServerTags.Tag tag, float unit) {
