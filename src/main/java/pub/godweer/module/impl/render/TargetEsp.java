@@ -8,8 +8,11 @@ import net.minecraft.world.phys.EntityHitResult;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.style.Theme;
 import pub.godweer.util.target.BloomTargetRenderer;
+import pub.godweer.util.target.ChainTargetRenderer;
+import pub.godweer.util.target.CrystalsTargetRenderer;
 import pub.godweer.util.target.GhostTargetRenderer;
 import pub.godweer.util.target.HaloTargetRenderer;
+import pub.godweer.util.target.RingTargetRenderer;
 import pub.godweer.util.target.TargetEspRenderer;
 import pub.godweer.event.EventTarget;
 import pub.godweer.event.list.Render2DEvent;
@@ -24,8 +27,8 @@ import pub.godweer.module.settings.impl.SliderSetting;
 import pub.godweer.friend.FriendManager;
 
 /**
- * Target ESP: подсветка цели — маркер в центре, молнии, кубы-хало, облако искр
- * или призраки на орбитах.
+ * Target ESP: подсветка цели — маркер в центре, молнии, кубы-хало, облако
+ * искр, призраки на орбитах, цепи, обруч или хоровод кристаллов.
  * Цель берётся только из Aura или с наводки (прицел на модели).
  */
 public final class TargetEsp extends Module {
@@ -35,9 +38,13 @@ public final class TargetEsp extends Module {
     public static final String MODE_CUBES = "Cubes";
     public static final String MODE_BLOOM = "Bloom";
     public static final String MODE_GHOST = "Ghost";
+    public static final String MODE_CHAINS = "Chains";
+    public static final String MODE_RING = "Ring";
+    public static final String MODE_CRYSTALS = "Crystals";
 
     public final ModeSetting mode = mode("Режим", MODE_MARKER,
-            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM, MODE_GHOST);
+            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM, MODE_GHOST,
+            MODE_CHAINS, MODE_RING, MODE_CRYSTALS);
 
     public final CheckBox themeColor = checkbox("Color From Theme", true);
     public final ColorSetting color = color("Color", ColorUtil.rgba(255, 170, 45, 255)).visible(() -> !themeColor.getValue());
@@ -69,10 +76,19 @@ public final class TargetEsp extends Module {
     public final SliderSetting ghostRadius = slider("Призраки: Радиус", 1.0f, 0.3f, 2.5f, 0.05f).visible(this::usesGhost);
     public final SliderSetting ghostLength = slider("Призраки: Длина хвоста", 7.0f, 1.0f, 12.0f, 1.0f).visible(this::usesGhost);
 
+    // Цепи: скорость вращения лент. Кольцо: скорость хода обруча.
+    public final SliderSetting chainsSpeed = slider("Цепи: Вращение", 1.0f, 0.2f, 3.0f, 0.05f).visible(this::usesChains);
+    public final SliderSetting ringSpeed = slider("Кольцо: Скорость", 1.0f, 0.2f, 3.0f, 0.05f).visible(this::usesRing);
+    public final SliderSetting crystalCount = slider("Кристаллы: Количество", 10.0f, 3.0f, 20.0f, 1.0f).visible(this::usesCrystals);
+    public final SliderSetting crystalSpeed = slider("Кристаллы: Вращение", 1.0f, 0.2f, 3.0f, 0.05f).visible(this::usesCrystals);
+
     private final TargetEspRenderer renderer = new TargetEspRenderer();
     private final HaloTargetRenderer halo = new HaloTargetRenderer();
     private final BloomTargetRenderer bloom = new BloomTargetRenderer();
     private final GhostTargetRenderer ghost = new GhostTargetRenderer();
+    private final ChainTargetRenderer chains = new ChainTargetRenderer();
+    private final RingTargetRenderer ring = new RingTargetRenderer();
+    private final CrystalsTargetRenderer crystals = new CrystalsTargetRenderer();
 
     // Цель считается один раз на кадр: иначе эффекты рисуются по разным
     // результатам поиска и картинка начинает «дрожать» между проходами.
@@ -142,11 +158,24 @@ public final class TargetEsp extends Module {
 
     /** Маркер рисуем при любом режиме, кроме тех что сами рисуют в мире. */
     public boolean usesMarker() {
-        return !(usesLightning() || usesCubes() || usesBloom() || usesGhost());
+        return !(usesLightning() || usesCubes() || usesBloom() || usesGhost()
+                || usesChains() || usesRing() || usesCrystals());
     }
 
     public boolean usesGhost() {
         return mode.getValue().equalsIgnoreCase(MODE_GHOST);
+    }
+
+    public boolean usesChains() {
+        return mode.getValue().equalsIgnoreCase(MODE_CHAINS);
+    }
+
+    public boolean usesRing() {
+        return mode.getValue().equalsIgnoreCase(MODE_RING);
+    }
+
+    public boolean usesCrystals() {
+        return mode.getValue().equalsIgnoreCase(MODE_CRYSTALS);
     }
 
     public boolean usesLightning() {
@@ -166,6 +195,9 @@ public final class TargetEsp extends Module {
         this.halo.release();
         this.bloom.reset();
         this.ghost.reset();
+        this.chains.reset();
+        this.ring.reset();
+        this.crystals.reset();
         this.renderer.release();
         this.frameResolved = false;
         this.frameTarget = null;
@@ -193,6 +225,21 @@ public final class TargetEsp extends Module {
             this.ghost.render(this, tickDelta, resolveTarget(), getAccentColor());
         } else {
             this.ghost.reset();
+        }
+        if (usesChains()) {
+            this.chains.render(this, tickDelta, resolveTarget(), getAccentColor());
+        } else {
+            this.chains.reset();
+        }
+        if (usesRing()) {
+            this.ring.render(this, tickDelta, resolveTarget(), getAccentColor());
+        } else {
+            this.ring.reset();
+        }
+        if (usesCrystals()) {
+            this.crystals.render(this, tickDelta, resolveTarget(), getAccentColor());
+        } else {
+            this.crystals.reset();
         }
     }
 

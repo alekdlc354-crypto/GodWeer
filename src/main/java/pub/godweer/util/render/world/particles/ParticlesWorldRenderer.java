@@ -98,7 +98,19 @@ public final class ParticlesWorldRenderer {
             .withCull(false)
             .build();
 
-    public record Sprite(Vec3 position, float halfSize, int color) {
+    /**
+     * Билборд: квадрат, если задан один размер, или прямоугольник, если нужны
+     * разные полуширина и полувысота (вытянутые кристаллы).
+     */
+    public record Sprite(Vec3 position, float halfWidth, float halfHeight, int color) {
+        public Sprite(Vec3 position, float halfSize, int color) {
+            this(position, halfSize, halfSize, color);
+        }
+
+        /** Квадратные спрайты (искры, души) по-прежнему читают один размер. */
+        public float halfSize() {
+            return this.halfWidth;
+        }
     }
 
     public void render(List<Sprite> sprites, float brightness) {
@@ -240,15 +252,16 @@ public final class ParticlesWorldRenderer {
         );
         for (Sprite sprite : sprites) {
             Vector4f center = Render3DUtil.toViewSpace(sprite.position(), cameraPos, pose);
-            float half = sprite.halfSize();
+            float halfW = sprite.halfWidth();
+            float halfH = sprite.halfHeight();
             int color = sprite.color();
 
-            addVertex(builder, center, -half, -half, 0.0F, 0.0F, color);
-            addVertex(builder, center, -half, half, 0.0F, 1.0F, color);
-            addVertex(builder, center, half, half, 1.0F, 1.0F, color);
-            addVertex(builder, center, -half, -half, 0.0F, 0.0F, color);
-            addVertex(builder, center, half, half, 1.0F, 1.0F, color);
-            addVertex(builder, center, half, -half, 1.0F, 0.0F, color);
+            addVertex(builder, center, -halfW, -halfH, 0.0F, 0.0F, color);
+            addVertex(builder, center, -halfW, halfH, 0.0F, 1.0F, color);
+            addVertex(builder, center, halfW, halfH, 1.0F, 1.0F, color);
+            addVertex(builder, center, -halfW, -halfH, 0.0F, 0.0F, color);
+            addVertex(builder, center, halfW, halfH, 1.0F, 1.0F, color);
+            addVertex(builder, center, halfW, -halfH, 1.0F, 0.0F, color);
         }
         return builder.build();
     }
