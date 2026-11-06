@@ -110,7 +110,7 @@ public final class PlayerHud extends HudElement implements IMinecraft {
         smoothAbs = Mth.lerp(0.22F, smoothAbs, curAbs);
 
         String nick = entityName(t);
-        String hpLabel = String.format(Locale.ROOT, "HP: %.1f (%.1f)", curHp, curAbs);
+        String hpLabel = String.format(Locale.FRANCE, "HP: %.1f (%.1f)", curHp, curAbs);
 
         float nickW = Fonts.SF_MEDIUM.getWidth(nick, 9.0F);
         float hpW = Fonts.SF_MEDIUM.getWidth(hpLabel, 7.5F);
