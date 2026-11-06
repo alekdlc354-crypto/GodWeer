@@ -25,7 +25,6 @@ import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryStack;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.render.Render3DUtil;
-import pub.godweer.util.render.world.particles.ParticlesWorldRenderer;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -95,8 +94,6 @@ public final class HitStrikeRenderer {
             .withCull(false)
             .build();
 
-    private final ParticlesWorldRenderer particles = new ParticlesWorldRenderer();
-    private final List<ParticlesWorldRenderer.Sprite> sprites = new ArrayList<>();
 
     private final List<Strike> strikes = new ArrayList<>();
 
@@ -134,7 +131,6 @@ public final class HitStrikeRenderer {
 
         beginMesh(strikes.size());
         triangleCount = 0;
-        sprites.clear();
         Vec3 camPos = camera.position();
 
         for (Strike strike : strikes) {
@@ -212,20 +208,11 @@ public final class HitStrikeRenderer {
                             seed * 5 + 31, cell, cellFrac, intensity, accent);
                 }
 
-                // bloom на каждом втором узле — как в LightningEsp
-                if ((point & 1) == 0) {
-                    sprites.add(new ParticlesWorldRenderer.Sprite(
-                            new Vec3(base.x + x, base.y + y, base.z + z),
-                            0.09F * wMul * intensity * formBloom(strikeForm),
-                            ColorUtil.withAlpha(accent, Math.round(ColorUtil.alpha(accent) * 0.35F * intensity))));
-                }
-
                 px = x; py = y; pz = z;
             }
         }
 
         if (triangleCount > 0) submit(camera, levelProjection);
-        if (!sprites.isEmpty()) particles.render(sprites, BLOOM_BRIGHTNESS, true, true);
     }
 
     private void stroke(Vec3 base, Vec3 cam,
@@ -588,7 +575,6 @@ public final class HitStrikeRenderer {
 
     public void release() {
         strikes.clear();
-        sprites.clear();
         triangleCount = 0;
         meshBuilder = null;
         if (vertexBuffer != null) { vertexBuffer.close(); vertexBuffer = null; }

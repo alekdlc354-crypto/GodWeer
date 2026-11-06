@@ -140,7 +140,7 @@ public final class NameTags extends Module {
             "ХП", "Дистанция", "Эффекты"
     );
 
-    public final SliderSetting scale = slider("Размер", 1.0f, 0.5f, 1.8f, 0.05f);
+    public final SliderSetting scale = slider("Размер", 1.0f, 0.55f, 2.2f, 0.05f);
     public final CheckBox highlightTarget = checkbox("Выделять таргет", true);
     public final CheckBox highlightValuables = checkbox("Выделять ценное", true);
     public final CheckBox items = checkbox("Броня и предметы", true);
@@ -284,7 +284,7 @@ public final class NameTags extends Module {
 
         if (!itemEntities.isEmpty() && this.targets.isEnabled("Предметы")) {
             if (this.stackItems.getValue()) {
-                renderClusteredItems(event, itemEntities, tickDelta, unit);
+                renderStackedItems(event, itemEntities, tickDelta, unit);
             } else {
                 for (ItemEntity item : itemEntities) {
                     drawItemTag(event, item, tickDelta, unit);
@@ -933,125 +933,63 @@ public final class NameTags extends Module {
         return name.contains("талисман") || name.contains("сфера") || name.contains("шар") || name.contains("шарик") || name.contains("талик");
     }
 
-    private void renderClusteredItems(Render2DEvent event, List<ItemEntity> items, float tickDelta, float unit) {
-        List<List<ItemEntity>> clusters = new ArrayList<>();
-        boolean[] visited = new boolean[items.size()];
+    /**
+     * Стакинг предметов: одинаковые (тот же предмет и те же компоненты) рядом
+     * сливаются в один тег с общим количеством; разные предметы — отдельные теги.
+     */
+    private void renderStackedItems(Render2DEvent event, List<ItemEntity> items, float tickDelta, float unit) {
         double maxDistSq = 3.0 * 3.0;
-
-        for (int i = 0; i < items.size(); i++) {
-            if (visited[i]) continue;
-            List<ItemEntity> cluster = new ArrayList<>();
-            ItemEntity current = items.get(i);
-            cluster.add(current);
-            visited[i] = true;
-
-            for (int j = i + 1; j < items.size(); j++) {
-                if (!visited[j]) {
-                    ItemEntity other = items.get(j);
-                    if (current.distanceToSqr(other) <= maxDistSq) {
-                        cluster.add(other);
-                        visited[j] = true;
-                    }
+        List<List<ItemEntity>> groups = new ArrayList<>();
+        for (ItemEntity item : items) {
+            List<ItemEntity> match = null;
+            for (List<ItemEntity> group : groups) {
+                ItemEntity head = group.get(0);
+                if (head.distanceToSqr(item) <= maxDistSq
+                        && ItemStack.isSameItemSameComponents(head.getItem(), item.getItem())) {
+                    match = group;
+                    break;
                 }
             }
-            clusters.add(cluster);
-        }
-
-        for (List<ItemEntity> cluster : clusters) {
-            if (cluster.size() == 1) {
-                drawItemTag(event, cluster.get(0), tickDelta, unit);
-            } else {
-                drawClusteredItemTag(event, cluster, tickDelta, unit);
+            if (match == null) {
+                match = new ArrayList<>();
+                groups.add(match);
             }
-        }
-    }
-
-    private void drawClusteredItemTag(Render2DEvent event, List<ItemEntity> cluster, float tickDelta, float unit) {
-        Minecraft mc = event.getClient();
-
-        double avgX = 0, avgY = 0, avgZ = 0;
-        for (ItemEntity e : cluster) {
-            Vec3 pos = Render3DUtil.interpolatedPosition(e, tickDelta);
-            avgX += pos.x;
-            avgY += pos.y;
-            avgZ += pos.z;
-        }
-        avgX /= cluster.size();
-        avgY /= cluster.size();
-        avgZ /= cluster.size();
-
-        Vec3 position = new Vec3(avgX, avgY + 0.35D, avgZ);
-        Render3DUtil.ScreenPoint anchor = Render3DUtil.projectToScreen(mc, position);
-        if (anchor == null) return;
-
-        MsdfFont font = Fonts.SF_MEDIUM;
-        float baseTextSize = FONT * unit;
-        float baseItemSize = 11.5F * unit;
-        float gap = 4.5F * unit;
-        float rowGap = 2.5F * unit;
-        float pad = 6.0F * unit;
-
-        float maxRowWidth = 0.0F;
-        float totalHeight = pad * 2.0F;
-
-        for (int i = 0; i < cluster.size(); i++) {
-            ItemStack stack = cluster.get(i).getItem();
-            ItemStyle style = getItemStyle(stack, baseTextSize, baseItemSize);
-            String countStr = stack.getCount() > 1 ? ("x" + stack.getCount() + " ") : "";
-            String itemName = countStr + stack.getHoverName().getString();
-            float textWidth = font.getWidth(itemName, style.textSize());
-
-            float rowWidth = style.iconSize() + gap + textWidth;
-            if (rowWidth > maxRowWidth) maxRowWidth = rowWidth;
-
-            float rowH = Math.max(style.iconSize(), font.textHeight(style.textSize())) + 2.0F * unit;
-            totalHeight += rowH;
-            if (i < cluster.size() - 1) totalHeight += rowGap;
+            match.add(item);
         }
 
-        float pillWidth = pad * 2.0F + maxRowWidth;
-        float pillX = anchor.x() - pillWidth / 2.0F;
-        float pillY = anchor.y() - totalHeight;
-
-        HudStyle.drawCard(pillX, pillY, pillWidth, totalHeight, RADIUS * unit);
-
-        float cursorY = pillY + pad;
-        for (ItemEntity entity : cluster) {
-            ItemStack stack = entity.getItem();
-            ItemStyle style = getItemStyle(stack, baseTextSize, baseItemSize);
-            String countStr = stack.getCount() > 1 ? ("x" + stack.getCount() + " ") : "";
-            String itemName = countStr + stack.getHoverName().getString();
-
-            float rowH = Math.max(style.iconSize(), font.textHeight(style.textSize())) + 2.0F * unit;
-            float centerY = cursorY + rowH / 2.0F;
-
-            var extractor = event.getGuiGraphicsExtractor();
-            if (extractor != null) {
-                Render2DUtil.flush();
-                Matrix3x2fStack pose = extractor.pose();
-                float itemScale = style.iconSize() / 16.0F;
-                pose.pushMatrix();
-                pose.translate(pillX + pad, centerY - style.iconSize() / 2.0F);
-                pose.scale(itemScale, itemScale);
-                extractor.item(stack, 0, 0);
-                pose.popMatrix();
+        for (List<ItemEntity> group : groups) {
+            if (group.size() == 1) {
+                drawItemTag(event, group.get(0), tickDelta, unit);
+                continue;
             }
 
-            float textX = pillX + pad + style.iconSize() + gap;
-            float textY = centerY - font.textHeight(style.textSize()) / 2.0F + 0.35F * unit;
-            Fonts.drawString(font, itemName, textX, textY, style.textSize(), style.color());
-            cursorY += rowH + rowGap;
+            int total = 0;
+            double sx = 0.0D, sy = 0.0D, sz = 0.0D;
+            for (ItemEntity e : group) {
+                total += e.getItem().getCount();
+                Vec3 p = Render3DUtil.interpolatedPosition(e, tickDelta);
+                sx += p.x;
+                sy += p.y;
+                sz += p.z;
+            }
+            int n = group.size();
+            ItemEntity head = group.get(0);
+            Vec3 position = new Vec3(sx / n, sy / n + head.getBbHeight() + 0.25D, sz / n);
+            drawStackTag(event, head.getItem().copyWithCount(total), position, unit);
         }
     }
 
     private void drawItemTag(Render2DEvent event, ItemEntity entity, float tickDelta, float unit) {
-        Minecraft mc = event.getClient();
         Vec3 position = Render3DUtil.interpolatedPosition(entity, tickDelta)
                 .add(0.0D, entity.getBbHeight() + 0.25D, 0.0D);
+        drawStackTag(event, entity.getItem(), position, unit);
+    }
+
+    private void drawStackTag(Render2DEvent event, ItemStack stack, Vec3 position, float unit) {
+        Minecraft mc = event.getClient();
         Render3DUtil.ScreenPoint anchor = Render3DUtil.projectToScreen(mc, position);
         if (anchor == null) return;
 
-        ItemStack stack = entity.getItem();
         if (stack.isEmpty()) return;
 
         ItemStyle style = getItemStyle(stack, FONT * unit, 11.5F * unit);

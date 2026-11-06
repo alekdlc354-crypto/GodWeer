@@ -1,10 +1,16 @@
 package pub.godweer.hud;
 
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.phys.EntityHitResult;
+import org.joml.Matrix3x2fStack;
 import pub.godweer.IMinecraft;
+import pub.godweer.util.render.Render2DUtil;
 import pub.godweer.util.misc.Annstable;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.render.Render2D;
@@ -12,6 +18,8 @@ import pub.godweer.util.render.font.Fonts;
 import pub.godweer.event.list.Render2DEvent;
 import pub.godweer.module.impl.combat.KillAura;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -27,8 +35,13 @@ public final class PlayerHud extends HudElement implements IMinecraft {
     private static final float RADIUS = 6.0F;
     private static final float BAR_H = 6.0F;
     private static final float BAR_W = 64.0F;
-    private static final int HURT_TINT = 0xFFFF4848;
-    private static final int HURT_OVERLAY = ColorUtil.rgba(255, 66, 66, 255);
+    private static final int HURT_TINT = 0xFFFF0000;
+    private static final int HURT_OVERLAY = ColorUtil.rgba(255, 0, 0, 255);
+    // Ряд брони под карточкой: иконка 16 px + отступ
+    private static final float ARMOR_ROW_H = 22.0F;
+    private static final float ARMOR_STEP = 18.0F;
+    private static final EquipmentSlot[] ARMOR_SLOTS = {
+            EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
     private float blush = 0.0F;
     private LivingEntity lastTarget = null;
@@ -107,14 +120,18 @@ public final class PlayerHud extends HudElement implements IMinecraft {
         if (animatedW < 0.0F) animatedW = targetW;
         animatedW += (targetW - animatedW) * 0.25F;
 
+        List<ItemStack> armor = armorStacks(t);
+        float topH = PAD * 2.0F + HEAD;
+        float armorH = armor.isEmpty() ? 0.0F : ARMOR_ROW_H;
+
         this.width = animatedW;
-        this.height = PAD * 2.0F + HEAD;
+        this.height = topH + armorH;
 
         HudStyle.drawCard(x, y, width, height, RADIUS);
 
         // Head, with the hurt flash riding on the skin tint itself
         float headX = x + PAD;
-        float headY = y + (height - HEAD) / 2.0F;
+        float headY = y + PAD;
         int hurt = Math.max(0, t.hurtTime);
         if (hurt > lastHurtTime) {
             blush = 1.0F;
@@ -139,7 +156,7 @@ public final class PlayerHud extends HudElement implements IMinecraft {
         }
         if (blush > 0.02F) {
             Render2D.drawRoundedRect(headX, headY, HEAD, HEAD, HEAD_R,
-                    ColorUtil.withAlpha(HURT_OVERLAY, Math.round(blush * 115.0F)));
+                    ColorUtil.withAlpha(HURT_OVERLAY, Math.round(blush * 178.0F)));
         }
 
         float rx = headX + HEAD + 7.0F;
@@ -151,7 +168,7 @@ public final class PlayerHud extends HudElement implements IMinecraft {
 
         // Flat bar: yellow health, lavender absorption continuing after it
         float barX = rx;
-        float barY = y + height - PAD - BAR_H;
+        float barY = y + topH - PAD - BAR_H;
         float barW = Math.min(BAR_W, availRightW);
         float radius = BAR_H / 2.0F;
         Render2D.drawRoundedRect(barX, barY, barW, BAR_H, radius, HudStyle.TRACK);
@@ -165,6 +182,42 @@ public final class PlayerHud extends HudElement implements IMinecraft {
         float absW = barW * absFrac;
         if (absW > 0.5F) {
             Render2D.drawRoundedRect(barX + hpW2, barY, absW, BAR_H, radius, HudStyle.HP_ABSORB);
+        }
+
+        if (!armor.isEmpty()) {
+            drawArmor(event, armor, x + PAD, y + topH + 3.0F);
+        }
+    }
+
+    /** Броня от шлема к ботинкам; пустые слоты пропускаются. */
+    private static List<ItemStack> armorStacks(LivingEntity t) {
+        List<ItemStack> out = new ArrayList<>();
+        for (EquipmentSlot slot : ARMOR_SLOTS) {
+            ItemStack stack = t.getItemBySlot(slot);
+            if (stack != null && !stack.isEmpty()) out.add(stack);
+        }
+        return out;
+    }
+
+    /**
+     * Иконки брони без зачарований: компоненты чар очищаются у копии стака, блик
+     * (glint) выключается override-компонентом. Прочность — ванильная полоска предмета.
+     */
+    private static void drawArmor(Render2DEvent event, List<ItemStack> armor, float startX, float startY) {
+        var extractor = event.getGuiGraphicsExtractor();
+        if (extractor == null) return;
+
+        Render2DUtil.flush();
+        Matrix3x2fStack pose = extractor.pose();
+        for (int i = 0; i < armor.size(); i++) {
+            ItemStack clean = armor.get(i).copy();
+            clean.set(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+            clean.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, false);
+
+            pose.pushMatrix();
+            pose.translate(startX + i * ARMOR_STEP, startY);
+            extractor.item(clean, 0, 0);
+            pose.popMatrix();
         }
     }
 }

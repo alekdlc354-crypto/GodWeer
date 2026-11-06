@@ -8,6 +8,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import pub.godweer.util.style.ColorUtil;
 import pub.godweer.util.style.Theme;
 import pub.godweer.util.target.BloomTargetRenderer;
+import pub.godweer.util.target.TargetEspEffects;
 import pub.godweer.util.target.HaloTargetRenderer;
 import pub.godweer.util.target.TargetEspRenderer;
 import pub.godweer.event.EventTarget;
@@ -33,9 +34,17 @@ public final class TargetEsp extends Module {
     public static final String MODE_LIGHTNING = "Lightning";
     public static final String MODE_CUBES = "Cubes";
     public static final String MODE_BLOOM = "Bloom";
+    public static final String MODE_CHAINS = "Chains";
+    public static final String MODE_RING = "Ring";
+    public static final String MODE_GHOST = "Ghost";
+    public static final String MODE_SOUL_RING = "SoulRing";
 
     public final ModeSetting mode = mode("Режим", MODE_MARKER,
-            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM);
+            MODE_MARKER, MODE_LIGHTNING, MODE_CUBES, MODE_BLOOM,
+            MODE_CHAINS, MODE_RING, MODE_GHOST, MODE_SOUL_RING);
+
+    // Количество призраков в хороводе (режим SoulRing): 3..20
+    public final SliderSetting soulCount = slider("Кристаллы: Количество", 8.0f, 3.0f, 20.0f, 1.0f).visible(this::usesSoulRing);
 
     public final CheckBox themeColor = checkbox("Color From Theme", true);
     public final ColorSetting color = color("Color", ColorUtil.rgba(255, 170, 45, 255)).visible(() -> !themeColor.getValue());
@@ -65,6 +74,7 @@ public final class TargetEsp extends Module {
     private final TargetEspRenderer renderer = new TargetEspRenderer();
     private final HaloTargetRenderer halo = new HaloTargetRenderer();
     private final BloomTargetRenderer bloom = new BloomTargetRenderer();
+    private final TargetEspEffects fx = new TargetEspEffects();
 
     // Цель считается один раз на кадр: иначе эффекты рисуются по разным
     // результатам поиска и картинка начинает «дрожать» между проходами.
@@ -132,9 +142,30 @@ public final class TargetEsp extends Module {
         return resolveTarget() != null;
     }
 
-    /** Маркер рисуем при любом режиме, кроме тех что сами рисуют в мире. */
+    /** Маркер рисуем только в режиме Marker. */
     public boolean usesMarker() {
-        return !(usesLightning() || usesCubes() || usesBloom());
+        return !(usesLightning() || usesCubes() || usesBloom() || usesFx());
+    }
+
+    /** Режимы Chains / Ring / Ghost / SoulRing рисуются в мире через TargetEspEffects. */
+    public boolean usesFx() {
+        return usesChains() || usesRing() || usesGhost() || usesSoulRing();
+    }
+
+    public boolean usesChains() {
+        return mode.getValue().equalsIgnoreCase(MODE_CHAINS);
+    }
+
+    public boolean usesRing() {
+        return mode.getValue().equalsIgnoreCase(MODE_RING);
+    }
+
+    public boolean usesGhost() {
+        return mode.getValue().equalsIgnoreCase(MODE_GHOST);
+    }
+
+    public boolean usesSoulRing() {
+        return mode.getValue().equalsIgnoreCase(MODE_SOUL_RING);
     }
 
     public boolean usesLightning() {
@@ -154,6 +185,7 @@ public final class TargetEsp extends Module {
         this.halo.release();
         this.bloom.reset();
         this.renderer.release();
+        this.fx.release();
         this.frameResolved = false;
         this.frameTarget = null;
     }
@@ -176,6 +208,7 @@ public final class TargetEsp extends Module {
         } else {
             this.bloom.reset();
         }
+        this.fx.render(this, tickDelta);
     }
 
     @EventTarget

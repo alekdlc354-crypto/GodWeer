@@ -29,7 +29,7 @@ public final class TargetEspRenderer {
     private static final float MARKER_WORLD_RADIUS = 0.9F;
 
     // damage flash — same colour and timing as Target HUD
-    private static final int HURT_TINT = 0xFFFF4040;
+    private static final int HURT_TINT = 0xFFFF0000;
 
     // world-pass renderers — вызываются из TargetEsp.onRender3D (Render3DEvent)
     private final LightningEspRenderer lightning = new LightningEspRenderer();

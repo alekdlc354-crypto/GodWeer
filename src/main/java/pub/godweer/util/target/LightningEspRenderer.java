@@ -93,7 +93,7 @@ public final class LightningEspRenderer {
     private static final float NODE_ALPHA = 0.35F;
 
     private static final int WHITE_BLUE = 0xFFF2FAFF;
-    private static final int HURT_TINT = 0xFFFF4040;
+    private static final int HURT_TINT = 0xFFFF0000;
     private static final float BLOOM_BRIGHTNESS = 1.45F;
     private static final double MAX_DELTA_SECONDS = 0.05D;
 

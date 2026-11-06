@@ -72,7 +72,7 @@ public final class HaloTargetRenderer {
     private static final float BOB_AMOUNT = 0.032F;     // плавное вертикальное дыхание
     private static final float BOB_SPEED = 1.15F;
     private static final float ORBIT_SPEED = 0.18F;     // очень плавный дрейф вокруг цели
-    private static final int FLASH_ARGB = 0xFFFA3444;
+    private static final int FLASH_ARGB = 0xFFFF0000;
     private static final float FADE_SECONDS = 0.28F;
     private static final float MAX_DELTA_SECONDS = 0.05F;
     private static final int TRANSFORM_SIZE = new Std140SizeCalculator().putMat4f().get();
